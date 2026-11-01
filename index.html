@@ -1,1 +1,133 @@
-Hello QuinnDom
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuinnDom — Passport Prompt</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Nunito+Sans:wght@400;600;700&family=VT323&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { font-size: 22px; font-weight: 700; }
+  .streak { font-family: var(--font-pixel); font-size: 26px; color: var(--clay); }
+  .card { padding: 24px; margin-top: 22px; }
+  .prompt { font-family: var(--font-display); font-size: 22px; margin: 0 0 6px; text-wrap: balance; }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+  input[type=text] { width: 100%; font: 600 17px var(--font-body); padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg); margin-bottom: 10px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .result { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-weight: 600; }
+  .result.ok { background: rgba(123,198,122,.25); color: var(--forest); }
+  .result.bad { background: rgba(200,105,61,.18); color: var(--clay); }
+  .stamp-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
+    font-weight: 700; letter-spacing: .04em; background: var(--brass); color: #fff; margin-left: 8px; }
+  .reveal { margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .attempts { font-family: var(--font-pixel); font-size: 20px; color: var(--muted); }
+  footer { margin-top: 26px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">QuinnDom</div>
+    <div class="streak pixel" id="streak">STREAK 0</div>
+  </header>
+
+  <section class="card panel" id="promptCard">
+    <p class="meta" id="dateLabel"></p>
+    <h1 class="prompt" id="promptText">Loading…</h1>
+    <p class="meta"><span class="attempts" id="attemptsLeft">3</span> attempts left</p>
+    <div class="row">
+      <input type="text" id="guess" placeholder="Type a country name…" autocomplete="off">
+      <button class="primary" id="submit">Submit</button>
+    </div>
+    <div id="result"></div>
+  </section>
+
+  <footer>Day boundary is midnight Vietnam time (UTC+7). Prompts are generated from <code>data/countries.js</code> by <code>js/passport-engine.js</code> — everyone sees the same prompt on the same day, on their own save.</footer>
+</div>
+
+<script src="data/countries.js"></script>
+<script src="js/passport-engine.js"></script>
+<script>
+(function () {
+  var P = window.QuinnDomPassport;
+  var today = P.gameDateString();
+  var prompt = P.todaysPrompt(QUINNDOM_COUNTRIES, today);
+
+  document.getElementById('dateLabel').textContent = today + ' · ' + prompt.group + ' · ' + prompt.difficulty;
+  document.getElementById('promptText').textContent = prompt.text + '?';
+
+  var SAVE_KEY = 'quinndom-save-v1';
+  function load() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || { streak: 0, lastDay: null, passport: {}, attempts: {} }; }
+    catch (e) { return { streak: 0, lastDay: null, passport: {}, attempts: {} }; }
+  }
+  function save(s) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {} }
+
+  var state = load();
+  if (!state.attempts[today]) state.attempts[today] = 0;
+
+  function renderStreak() {
+    document.getElementById('streak').textContent = 'STREAK ' + state.streak;
+  }
+  function renderAttempts() {
+    document.getElementById('attemptsLeft').textContent = String(3 - state.attempts[today]);
+  }
+  renderStreak(); renderAttempts();
+
+  var solvedToday = !!state.passport[today];
+  var resultEl = document.getElementById('result');
+  var guessEl = document.getElementById('guess');
+  var submitBtn = document.getElementById('submit');
+
+  if (solvedToday) {
+    showSolved(state.passport[today]);
+  }
+
+  function showSolved(answer) {
+    guessEl.disabled = true; submitBtn.disabled = true;
+    resultEl.innerHTML = '<div class="result ok">Stamped: ' + answer.country +
+      (answer.gold ? '<span class="stamp-badge">GOLD</span>' : '') + '</div>';
+  }
+
+  submitBtn.addEventListener('click', function () {
+    var name = guessEl.value.trim();
+    if (!name || solvedToday) return;
+    var check = P.checkAnswer(prompt, name, QUINNDOM_COUNTRIES);
+    if (check.ok) {
+      state.passport[today] = { country: check.country.n, gold: check.gold };
+      if (state.lastDay !== today) {
+        var y = new Date(new Date(today).getTime() - 86400000);
+        var yStr = P.gameDateString(y);
+        state.streak = (state.lastDay === yStr) ? state.streak + 1 : 1;
+        state.lastDay = today;
+      }
+      save(state);
+      solvedToday = true;
+      renderStreak();
+      showSolved(state.passport[today]);
+    } else {
+      state.attempts[today]++;
+      save(state);
+      renderAttempts();
+      var left = 3 - state.attempts[today];
+      var html = '<div class="result bad">Not quite — ' + check.reason + '</div>';
+      if (left <= 0) {
+        html += '<div class="reveal">Valid answers today: ' + prompt.validAnswers.join(', ') + '</div>';
+        guessEl.disabled = true; submitBtn.disabled = true;
+      }
+      resultEl.innerHTML = html;
+    }
+    guessEl.value = '';
+  });
+  guessEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitBtn.click(); });
+  if (state.attempts[today] >= 3 && !solvedToday) {
+    guessEl.disabled = true; submitBtn.disabled = true;
+    resultEl.innerHTML = '<div class="result bad">Out of attempts today. Valid answers: ' + prompt.validAnswers.join(', ') + '</div>';
+  }
+})();
+</script>
+</body>
+</html>
