@@ -7,11 +7,13 @@ Design docs live in the QuinnDom Claude project (GDD, PRD, colour palette, stamp
 ## Structure
 
 ```
-index.html            Release 1: daily passport prompt (playable today)
-css/tokens.css         Palette v4, fonts, base styles
-data/countries.js      194-country data table (population, area, flags, history…)
-js/passport-engine.js  Deterministic daily prompt generator + answer checker
-assets/                (empty — art and sound go here)
+index.html               Release 1: daily passport prompt (playable today)
+css/tokens.css            Palette v4, fonts, base styles
+data/countries.js         194-country data table (population, area, flags, history…)
+js/passport-engine.js     Deterministic daily prompt generator + answer checker
+js/sound-engine.js        Web Audio sound effects + ambience loops, off by default
+assets/icon-growing-brain.svg  Logo: pixel brain with a sprout (also the favicon)
+assets/favicon-*.png, apple-touch-icon.png  Rasterised favicon sizes
 ```
 
 ## Running locally

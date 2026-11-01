@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QuinnDom — Passport Prompt</title>
+<link rel="icon" href="assets/icon-growing-brain.svg" type="image/svg+xml">
+<link rel="icon" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Nunito+Sans:wght@400;600;700&family=VT323&display=swap">
 <link rel="stylesheet" href="css/tokens.css">
 <style>
@@ -25,14 +29,49 @@
   .reveal { margin-top: 10px; font-size: 14px; color: var(--muted); }
   .attempts { font-family: var(--font-pixel); font-size: 20px; color: var(--muted); }
   footer { margin-top: 26px; color: var(--muted); font-size: 13px; }
+  .brand-mark { display: flex; align-items: center; gap: 10px; }
+  .brand-mark img { width: 34px; height: 34px; border-radius: 9px; }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .settings-btn { padding: 6px 10px; font-size: 13px; line-height: 1; }
+  .settings-panel { display: none; margin-top: 10px; padding: 14px 16px; gap: 10px; flex-direction: column; }
+  .settings-panel.open { display: flex; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .settings-row input[type=range] { width: 140px; }
+  .toggle { position: relative; width: 44px; height: 24px; border-radius: 999px; background: var(--line);
+    border: none; padding: 0; cursor: pointer; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: left .15s; }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { left: 22px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">QuinnDom</div>
-    <div class="streak pixel" id="streak">STREAK 0</div>
+    <div class="brand brand-mark">
+      <img src="assets/icon-growing-brain.svg" alt="QuinnDom logo: a pixel brain with a sprout">
+      <span>QuinnDom</span>
+    </div>
+    <div class="header-right">
+      <div class="streak pixel" id="streak">STREAK 0</div>
+      <button class="settings-btn" id="settingsToggle" aria-expanded="false" aria-controls="settingsPanel">⚙ Sound</button>
+    </div>
   </header>
+
+  <section class="card panel settings-panel" id="settingsPanel">
+    <div class="settings-row">
+      <span>Sound effects</span>
+      <button class="toggle" id="fxToggle" role="switch" aria-checked="false" aria-label="Sound effects"></button>
+    </div>
+    <div class="settings-row">
+      <span>Ambience</span>
+      <button class="toggle" id="ambToggle" role="switch" aria-checked="false" aria-label="Ambience"></button>
+    </div>
+    <div class="settings-row">
+      <span>Volume</span>
+      <input type="range" id="volSlider" min="0" max="100" value="100">
+    </div>
+  </section>
 
   <section class="card panel" id="promptCard">
     <p class="meta" id="dateLabel"></p>
@@ -50,9 +89,57 @@
 
 <script src="data/countries.js"></script>
 <script src="js/passport-engine.js"></script>
+<script src="js/sound-engine.js"></script>
 <script>
 (function () {
+  var S = window.QuinnDomSound;
   var P = window.QuinnDomPassport;
+
+  // ---- settings panel wiring ----
+  var settingsToggle = document.getElementById('settingsToggle');
+  var settingsPanel = document.getElementById('settingsPanel');
+  var fxToggle = document.getElementById('fxToggle');
+  var ambToggle = document.getElementById('ambToggle');
+  var volSlider = document.getElementById('volSlider');
+
+  function syncSoundUI() {
+    fxToggle.classList.toggle('on', S.isEnabled());
+    fxToggle.setAttribute('aria-checked', String(S.isEnabled()));
+    ambToggle.classList.toggle('on', S.isAmbienceEnabled());
+    ambToggle.setAttribute('aria-checked', String(S.isAmbienceEnabled()));
+    volSlider.value = String(Math.round(S.getVolume() * 100));
+  }
+  syncSoundUI();
+
+  settingsToggle.addEventListener('click', function () {
+    var open = settingsPanel.classList.toggle('open');
+    settingsToggle.setAttribute('aria-expanded', String(open));
+  });
+  fxToggle.addEventListener('click', function () {
+    S.setEnabled(!S.isEnabled());
+    syncSoundUI();
+    if (S.isEnabled()) S.play('tap');
+  });
+  ambToggle.addEventListener('click', function () {
+    var on = !S.isAmbienceEnabled();
+    S.setAmbienceEnabled(on);
+    syncSoundUI();
+    if (on) S.startLoop('garden'); else S.stopLoop();
+  });
+  volSlider.addEventListener('input', function () {
+    S.setVolume(volSlider.value / 100);
+  });
+  // Resume ambience on the first click/keypress if it was left on last visit
+  // (browsers block audio until a user gesture).
+  if (S.isAmbienceEnabled()) {
+    var resumeAmbience = function () {
+      S.startLoop('garden');
+      document.removeEventListener('pointerdown', resumeAmbience);
+      document.removeEventListener('keydown', resumeAmbience);
+    };
+    document.addEventListener('pointerdown', resumeAmbience, { once: true });
+    document.addEventListener('keydown', resumeAmbience, { once: true });
+  }
   var today = P.gameDateString();
   var prompt = P.todaysPrompt(QUINNDOM_COUNTRIES, today);
 
@@ -92,22 +179,28 @@
       (answer.gold ? '<span class="stamp-badge">GOLD</span>' : '') + '</div>';
   }
 
+  var MILESTONES = [7, 30, 100, 365];
+
   submitBtn.addEventListener('click', function () {
     var name = guessEl.value.trim();
     if (!name || solvedToday) return;
+    S.play('tap');
     var check = P.checkAnswer(prompt, name, QUINNDOM_COUNTRIES);
     if (check.ok) {
       state.passport[today] = { country: check.country.n, gold: check.gold };
+      var hitMilestone = false;
       if (state.lastDay !== today) {
         var y = new Date(new Date(today).getTime() - 86400000);
         var yStr = P.gameDateString(y);
         state.streak = (state.lastDay === yStr) ? state.streak + 1 : 1;
         state.lastDay = today;
+        hitMilestone = MILESTONES.indexOf(state.streak) !== -1;
       }
       save(state);
       solvedToday = true;
       renderStreak();
       showSolved(state.passport[today]);
+      S.play(hitMilestone ? 'milestone' : (check.gold ? 'stamp' : 'correct'));
     } else {
       state.attempts[today]++;
       save(state);
@@ -119,6 +212,7 @@
         guessEl.disabled = true; submitBtn.disabled = true;
       }
       resultEl.innerHTML = html;
+      S.play('wrong');
     }
     guessEl.value = '';
   });
