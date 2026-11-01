@@ -1,0 +1,40 @@
+/* QuinnDom design tokens — palette v4 (confirmed 1 Nov 2026), fonts, base styles.
+   Source: claude/quinndom-color-palette.md in the QuinnDom project. */
+:root {
+  /* Day */
+  --forest:#1B5E20; --canopy:#237A43; --leaf:#7BC67A; --moss:#4A7C59; --sky:#3A7BD5; --harbour:#1D3557;
+  --sun:#F7C948; --honey:#E9C46A; --brass:#C9A227; --sand:#E9D8A6; --mist:#F3F7EA; --ink:#14261B;
+  --clay:#C8693D; --wisteria:#B392AC; --lilac:#CDB4DB;
+  /* Night */
+  --charcoal:#222831; --slate:#393E46; --biolume:#00ADB5; --fungal:#8EF9F3; --moss-glow:#5CB85C; --moonlight:#EEEEEE;
+  /* Punk accents */
+  --neon-cyan:#00F5FF; --riot-blue:#2541B2; --spray-teal:#00BFA6;
+  /* Rare resources */
+  --mimosa:#D9638F; --psilocybe:#6E54A3; --petal-pink:#FFAFCC;
+
+  --bg: var(--mist); --fg: var(--ink); --accent: var(--canopy); --accent-ink: #FFFFFF;
+  --panel: #FFFFFF; --line: #D5E0CC; --muted: #4E6354;
+
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --font-pixel: "VT323", ui-monospace, "Courier New", monospace;
+}
+
+[data-theme="night"] {
+  --bg: var(--charcoal); --fg: var(--moonlight); --accent: var(--biolume); --accent-ink: var(--charcoal);
+  --panel: var(--slate); --line: #4A5058; --muted: #9AA6A0;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.5; transition: background .3s, color .3s;
+}
+h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.01em; }
+.pixel { font-family: var(--font-pixel); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+button { font: 600 15px var(--font-body); border-radius: 8px; padding: 10px 18px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.gold { color: var(--brass); }
