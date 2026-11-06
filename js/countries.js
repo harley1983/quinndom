@@ -200,9 +200,9 @@ var Countries = (function () {
     ["ZW", "Zimbabwe", "Harare", "AF"]
   ];
 
-  /* DRAFT gold-stamp marks (needs Harley's approval): lesser-known small countries, rule = population under about 3 million.
-     Borderline and not marked: Armenia, Qatar, Namibia, Uruguay, Mongolia. */
-  var GOLD = ["AD", "LI", "MC", "SM", "VA", "MT", "LU", "IS", "BT", "BN", "MV", "SC", "MU", "KM", "CV", "ST", "SZ", "LS", "DJ", "GQ", "GM", "GW", "GA", "BW", "AG", "BS", "BB", "BZ", "DM", "GD", "KN", "LC", "VC", "SR", "GY", "KI", "MH", "FM", "NR", "PW", "WS", "SB", "TO", "TV", "VU", "FJ", "TL", "CY", "EE", "LV", "LT", "SI", "MK", "ME", "MD", "AL", "BH"];
+  /* Gold stamps (Harley's pick, 6 Nov 2026): 30 rarely visited countries, both tiers together.
+     Which of these are "rare gold" (double bonus) is still to be decided. */
+  var GOLD = ["NR","TV","KI","MH","FM","SB","TO","PW","ST","KM","TL","TM","MD","DM","VC","GW","GN","LR","SL","ER","DJ","ML","SS","LY","YE","SO","KP","LI","SM","GQ"];
 
   var CONTINENTS = { AF: 'Africa', AS: 'Asia', EU: 'Europe', NA: 'North America', SA: 'South America', OC: 'Oceania' };
 
