@@ -16,11 +16,14 @@ var Screens = (function () {
 
   function show(name) {
     if (current && current !== name && current !== 'settings') previous = current;
+    var leaving = current && current !== name ? root.querySelector('#screen-' + current) : null;
+    if (leaving && leaving.__leave) leaving.__leave();
     current = name;
     var screens = root.querySelectorAll('.screen');
     for (var i = 0; i < screens.length; i++) screens[i].classList.toggle('active', screens[i].id === 'screen-' + name);
     window.scrollTo(0, 0);
     if (name === 'settings') { var st = root.querySelector('#screen-settings'); if (st && st.__paint) st.__paint(); }
+    var entering = root.querySelector('#screen-' + name); if (entering && entering.__enter) entering.__enter();
     var h = root.querySelector('#screen-' + name + ' [data-focus]');
     if (h) h.focus({ preventScroll: true });
   }
@@ -180,18 +183,21 @@ var Screens = (function () {
         '<div class="pxp h-main">' +
           '<div class="h-clock"><span class="tag" id="h-day">DAY 1</span><span class="h-date" id="h-date"></span><span class="h-count" id="h-count" aria-label="Time until the new day"></span></div>' +
           '<h1 data-focus tabindex="-1" id="h-title"></h1>' +
-          '<p>Your first tower is planted. The check-in reward, today’s passport prompt and your streak arrive in the next steps of Release 1.</p>' +
+          '<div class="pxp h-pass"><div class="t"><b>Today\u2019s passport</b><span id="h-pass-s"></span></div><button class="pbtn" id="h-pass-go">Open passport</button></div>' +
+          '<p>Your first tower is planted. The check-in reward and your streak arrive in the next steps of Release 1.</p>' +
           '<p>Your save lives in this browser. Export a copy from Settings now and then.</p>' +
         '</div>' +
       '</div></section>');
     root.appendChild(node);
     $('#h-settings', node).addEventListener('click', function () { show('settings'); });
+    $('#h-pass-go', node).addEventListener('click', function () { show('passport'); });
   }
   function refreshHome() {
     var s = Save.get();
     var dn = $('#h-day'); if (dn) dn.textContent = 'DAY ' + Clock.dayNumber(s.createdAt);
     var dt = $('#h-date'); if (dt) dt.textContent = Clock.formatDate() + ' \u00B7 Vietnam time';
     $('#h-city').textContent = s.cityName;
+    var ps = $('#h-pass-s'); if (ps) { var sm = Passport.summary(); ps.textContent = sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps'; var pg = $('#h-pass-go'); if (pg) pg.textContent = sm.done ? 'View passport' : 'Open passport'; }
     $('#h-title').textContent = 'Welcome, ' + (s.playerName || 'traveller') + '.';
   }
 
@@ -289,6 +295,8 @@ var Screens = (function () {
     applySoundSettings();
     Sound.onCue(toast);
     buildWelcome(); buildHome(); buildSettings();
+    Passport.build(root, { el: el, show: show, sound: function (n) { Sound.play(n); }, refreshHome: refreshHome,
+      startAmbience: function () { Sound.startAmbience('garden'); }, stopAmbience: function () { Sound.stopAmbience(); } });
     document.addEventListener('click', function (e) {
       var b = e.target.closest('.pbtn, .plink, .stepb');
       if (b && !b.id.match(/^(w-s0|w-s1|sw-sfx)$/) && !b.closest('#s-moments')) Sound.play('tap');

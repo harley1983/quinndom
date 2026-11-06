@@ -10,7 +10,9 @@ var Save = (function () {
       playerName: '',
       cityName: '',
       createdAt: null,
-      settings: { sfx: false, ambience: false, volume: 0.7 } // sound is off by default
+      settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
+      resources: { wood: 0, stone: 0, metal: 0, food: 0 },
+      passport: { stamps: [], days: {} }   // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
     };
   }
 
@@ -26,6 +28,21 @@ var Save = (function () {
     d.settings.ambience = s.ambience === true;
     var v = Number(s.volume);
     d.settings.volume = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
+    var r = raw.resources || {};
+    ['wood', 'stone', 'metal', 'food'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    var pp = raw.passport || {};
+    if (Array.isArray(pp.stamps)) d.passport.stamps = pp.stamps.filter(function (st) {
+      return st && typeof st.code === 'string' && /^[A-Z]{2}$/.test(st.code) && typeof st.date === 'string';
+    }).map(function (st) { return { code: st.code, date: st.date, promptId: String(st.promptId || ''), gold: st.gold === true }; });
+    if (pp.days && typeof pp.days === 'object') Object.keys(pp.days).forEach(function (k) {
+      var day = pp.days[k];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !day || typeof day !== 'object') return;
+      d.passport.days[k] = {
+        tries: Array.isArray(day.tries) ? day.tries.filter(function (c) { return typeof c === 'string'; }).slice(0, 3) : [],
+        answer: typeof day.answer === 'string' ? day.answer : null,
+        result: ['stamp', 'repeat', 'missed'].indexOf(day.result) >= 0 ? day.result : null
+      };
+    });
     return d;
   }
 
@@ -52,7 +69,9 @@ var Save = (function () {
       playerName: patch.playerName !== undefined ? patch.playerName : cur.playerName,
       cityName: patch.cityName !== undefined ? patch.cityName : cur.cityName,
       createdAt: patch.createdAt !== undefined ? patch.createdAt : cur.createdAt,
-      settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings
+      settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings,
+      resources: patch.resources || cur.resources,
+      passport: patch.passport || cur.passport
     });
     write(next);
     return next;

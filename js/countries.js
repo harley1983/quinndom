@@ -57,7 +57,7 @@ var Countries = (function () {
     ["EC", "Ecuador", "Quito", "SA"],
     ["EG", "Egypt", "Cairo", "AF"],
     ["SV", "El Salvador", "San Salvador", "NA"],
-    ["GQ", "Equatorial Guinea", "Malabo", "AF"],
+    ["GQ", "Equatorial Guinea", "Ciudad de la Paz", "AF"],
     ["ER", "Eritrea", "Asmara", "AF"],
     ["EE", "Estonia", "Tallinn", "EU"],
     ["SZ", "Eswatini", "Mbabane", "AF", ["Swaziland"]],
