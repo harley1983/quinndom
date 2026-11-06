@@ -53,10 +53,12 @@ var MapView = (function () {
       for (var t = -60; t <= 80; t += step) { var p = WorldMap.project(0, t)[1]; var py = (p - y0) / h * ch; if (py > 18 && py < ch - 26) la += '<span style="top:' + py.toFixed(0) + 'px">' + Math.abs(t) + '°' + (t < 0 ? 'S' : t > 0 ? 'N' : '') + '</span>'; }
       lonEl.innerHTML = lo; latEl.innerHTML = la;
     }
+    var moveCb = null;
     function apply() {
       var h = view.w / aspect();
       svg.style.setProperty('--u', (view.w / cw).toFixed(4));   // one screen pixel in map units, so outlines keep a constant thickness
       svg.setAttribute('viewBox', (view.cx - view.w / 2).toFixed(2) + ' ' + (view.cy - h / 2).toFixed(2) + ' ' + view.w.toFixed(2) + ' ' + h.toFixed(2));
+      if (moveCb) moveCb(view);
       pins.forEach(function (p) { var s = toScreen(p.x, p.y); p.el.style.transform = 'translate3d(' + s[0].toFixed(1) + 'px,' + s[1].toFixed(1) + 'px,0)'; });
       labels();
       if (onMove) onMove(view);
@@ -145,12 +147,15 @@ var MapView = (function () {
       pin: function (code, o) {
         o = o || {}; var p = WorldMap.pt[code]; if (!p) return null;
         var el = document.createElement('div'); el.className = 'mpin ' + (o.kind || '') + (o.drop ? ' drop' : '') + (o.ring ? ' ring' : '');
-        el.innerHTML = '<span class="ringfx"></span><svg class="px" viewBox="0 0 12 17" width="30" height="42" aria-hidden="true"><g fill="#2A1F18"><rect x="3" y="0" width="6" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="9" y="1" width="2" height="1"/><rect x="0" y="2" width="1" height="6"/><rect x="11" y="2" width="1" height="6"/><rect x="1" y="8" width="2" height="1"/><rect x="9" y="8" width="2" height="1"/><rect x="2" y="9" width="2" height="1"/><rect x="8" y="9" width="2" height="1"/><rect x="3" y="10" width="2" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="4" y="12" width="4" height="2"/><rect x="5" y="14" width="2" height="3"/></g><g class="pf"><rect x="3" y="1" width="6" height="1"/><rect x="1" y="2" width="10" height="6"/><rect x="2" y="8" width="8" height="1"/><rect x="4" y="9" width="4" height="2"/><rect x="5" y="11" width="2" height="2"/></g><rect x="5" y="3" width="2" height="2" fill="#fff"/><rect x="2" y="3" width="2" height="1" fill="#fff" opacity=".55"/></svg>' + (o.num ? '<b class="pn">' + o.num + '</b>' : '');
+        el.innerHTML = '<span class="ringfx"></span><svg class="px" viewBox="0 0 12 17" width="30" height="42" aria-hidden="true"><g fill="#14261B"><rect x="3" y="0" width="6" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="9" y="1" width="2" height="1"/><rect x="0" y="2" width="1" height="6"/><rect x="11" y="2" width="1" height="6"/><rect x="1" y="8" width="2" height="1"/><rect x="9" y="8" width="2" height="1"/><rect x="2" y="9" width="2" height="1"/><rect x="8" y="9" width="2" height="1"/><rect x="3" y="10" width="2" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="4" y="12" width="4" height="2"/><rect x="5" y="14" width="2" height="3"/></g><g class="pf"><rect x="3" y="1" width="6" height="1"/><rect x="1" y="2" width="10" height="6"/><rect x="2" y="8" width="8" height="1"/><rect x="4" y="9" width="4" height="2"/><rect x="5" y="11" width="2" height="2"/></g><rect x="5" y="3" width="2" height="2" fill="#fff"/><rect x="2" y="3" width="2" height="1" fill="#fff" opacity=".55"/></svg>' + (o.num ? '<b class="pn">' + o.num + '</b>' : '');
         pinsEl.appendChild(el); var rec = { x: p[0], y: p[1], el: el, code: code }; pins.push(rec); apply(); return el;
       },
       removePin: function (el) { pins = pins.filter(function (p) { if (p.el === el) { el.remove(); return false; } return true; }); },
       clearPins: function () { pins.forEach(function (p) { p.el.remove(); }); pins = []; },
       onPick: function (fn) { pickCb = fn; },
+      onMove: function (fn) { moveCb = fn; },
+      /* the true longitude and latitude (degrees) under the middle of the map: inverse Mercator */
+      center: function () { var lon = view.cx / W * 360 - 180, lat = (2 * Math.atan(Math.exp(-(view.cy + WorldMap.yTop) / WorldMap.scale)) - Math.PI / 2) * 180 / Math.PI; return [lon, lat]; },
       point: function (code) { var p = WorldMap.pt[code]; return p ? toScreen(p[0], p[1]) : null; },
       get view() { return view; }
     };

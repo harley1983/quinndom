@@ -70,10 +70,30 @@ var Passport = (function () {
   }
   function stampTile(st, big) {
     var c = Countries.byCode(st.code); if (!c) return '';
-    var rot = ((st.code.charCodeAt(0) * 7 + st.code.charCodeAt(1) * 13) % 7) - 3;
-    return '<div class="pp-stamp' + (st.gold ? ' gold' : '') + (big ? ' big' : '') + '" style="--rot:' + rot + 'deg;--ink-c:' + (CONT_COLOR[c.continent] || '#14261B') + '">' +
-      '<span class="band">' + esc(c.continentName.toUpperCase()) + '</span><span class="code">' + esc(st.code) + '</span><span class="nm">' + esc(c.name) + '</span><span class="dt">' + esc(st.date) + '</span>' +
-      (st.gold ? '<span class="gem" aria-label="Gold stamp">★</span>' : '') + '</div>';
+    var rot = ((st.code.charCodeAt(0) * 7 + st.code.charCodeAt(1) * 13) % 9) - 4;
+    return '<div class="pp-stamp' + (st.gold ? ' gold' : '') + (big ? ' big' : '') + '" style="--rot:' + rot + 'deg">' +
+      '<span class="disc">' + Stamps.svg(c.name, st.gold) + '</span><span class="dt">' + esc(st.date) + '</span></div>';
+  }
+  /* ---- the compass: a real rose (10-degree ticks, N/E/S/W), a needle that points to true north, and the live coordinates under the middle of the map ---- */
+  function compassSVG() {
+    var t = '', i, a, r, x1, y1, x2, y2, big;
+    for (i = 0; i < 36; i++) {
+      a = i * 10 * Math.PI / 180; big = i % 3 === 0; r = big ? 38 : 41;
+      x1 = 50 + Math.sin(a) * 44.5; y1 = 50 - Math.cos(a) * 44.5; x2 = 50 + Math.sin(a) * r; y2 = 50 - Math.cos(a) * r;
+      t += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="#14261B" stroke-width="' + (big ? 2 : 1.2) + '"/>';
+    }
+    return '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" fill="#FBF7EA" stroke="#14261B" stroke-width="3"/><circle cx="50" cy="50" r="46" fill="none" stroke="#C9A227" stroke-width="1.5"/>' + t +
+      '<path d="M50 20L56 44L80 50L56 56L50 80L44 56L20 50L44 44Z" fill="#E9D8A6" stroke="#14261B" stroke-width="1"/>' +
+      '<g font-family="VT323,monospace" font-size="15" text-anchor="middle" fill="#14261B"><text x="50" y="22" fill="#B3261E" font-size="17">N</text><text x="84" y="55">E</text><text x="50" y="87">S</text><text x="16" y="55">W</text></g>' +
+      '<g class="needle" id="pp-needle"><path d="M50 14L55.5 50L44.5 50Z" fill="#B3261E" stroke="#14261B" stroke-width="1.5" stroke-linejoin="round"/><path d="M50 86L55.5 50L44.5 50Z" fill="#FBF7EA" stroke="#14261B" stroke-width="1.5" stroke-linejoin="round"/><circle cx="50" cy="50" r="3.6" fill="#C9A227" stroke="#14261B" stroke-width="1.5"/></g></svg>';
+  }
+  function fmtCoord(lon, lat) {
+    function f(v, p, n) { return Math.abs(v).toFixed(1) + '°' + (v >= 0 ? p : n); }
+    return f(lat, 'N', 'S') + ' ' + f(lon, 'E', 'W');
+  }
+  function swingNeedle() {                            // a damped swing that settles on north, like a real needle
+    var n = $('#pp-needle'); if (!n || reduce || !n.animate) return;
+    n.animate([{ transform: 'rotate(26deg)' }, { transform: 'rotate(-17deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(-5deg)' }, { transform: 'rotate(2deg)' }, { transform: 'rotate(0deg)' }], { duration: 1500, easing: 'ease-out' });
   }
   function tag(word, kind) { return '<span class="tagstamp ' + kind + '">' + word + '</span>'; }
   function countUp(el, to, ms) {
@@ -178,7 +198,7 @@ var Passport = (function () {
     h.refreshHome(); paintTries();
     $('#pp-in').blur();
     h.sound('whoosh');
-    mv.fly(c.code, 1100, 2.6).then(function () {
+    swingNeedle(); mv.fly(c.code, 1100, 2.6).then(function () {
       mv.state(c.code, 'st-' + kind);
       mv.pin(c.code, { kind: kind, drop: true, ring: true, num: n });
       return wait(430).then(function () { h.sound('pindrop'); return wait(520); });
@@ -362,7 +382,7 @@ var Passport = (function () {
         '<i class="stud tl"></i><i class="stud tr"></i><i class="stud bl"></i><i class="stud br"></i>' +
         '<div class="pp-mapwrap"><div class="pp-map" id="pp-map"></div>' +
           '<div class="mv-ui pp-zoom"><button id="pp-zin" aria-label="Zoom in">+</button><button id="pp-zout" aria-label="Zoom out">−</button></div>' +
-          '<div class="mv-ui pp-compass" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#F4E9CD" stroke="#2A1F18" stroke-width="2"/><path d="M20 5l4 15-4 15-4-15z" fill="#C0392B"/><path d="M20 20h4l-4 15-4-15z" fill="#2A1F18" opacity=".8"/><circle cx="20" cy="20" r="2" fill="#F4E9CD"/></svg></div>' +
+          '<button class="mv-ui pp-compass" id="pp-compass" aria-label="Compass: north is up. Press to see the whole world">' + compassSVG() + '<span class="cc" id="pp-coord"></span></button>' +
           '<div class="pp-pincard" id="pp-card" hidden></div></div>' +
         '<aside class="pp-side">' +
           '<header class="pp-bar"><button class="barbtn" id="pp-back" aria-label="Back">←</button><div class="bart"><span class="kick" id="pp-kicker"></span><b id="pp-title"></b></div>' +
@@ -403,6 +423,7 @@ var Passport = (function () {
     $('#pp-next').addEventListener('click', afterNext);
     $('#pp-back').addEventListener('click', goBack);
     $('#pp-snd').addEventListener('click', function () { var on = h.toggleSfx(); paintSnd(); if (on) h.sound('tap'); });
+    $('#pp-compass').addEventListener('click', function () { if (mv) { mv.home(900); swingNeedle(); h.sound('tap'); } });
     $('#pp-zin').addEventListener('click', function () { if (mv) mv.zoom(0.55); h.sound('tap'); });
     $('#pp-zout').addEventListener('click', function () { if (mv) mv.zoom(1.8); h.sound('tap'); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && node.classList.contains('active') && S.pane !== 'play' && e.target === document.body) goBack(); });
@@ -415,12 +436,13 @@ var Passport = (function () {
   function paintSnd() {
     var on = h.isSfx(), b = $('#pp-snd');
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z" fill="#2A1F18"/>' + (on ? '<path d="M15 8c2 2 2 6 0 8M18 5c4 4 4 10 0 14" stroke="#2A1F18" stroke-width="2" fill="none"/>' : '<path d="M16 9l6 6M22 9l-6 6" stroke="#C0392B" stroke-width="2.4"/>') + '</svg>';
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z" fill="#14261B"/>' + (on ? '<path d="M15 8c2 2 2 6 0 8M18 5c4 4 4 10 0 14" stroke="#14261B" stroke-width="2" fill="none"/>' : '<path d="M16 9l6 6M22 9l-6 6" stroke="#C0392B" stroke-width="2.4"/>') + '</svg>';
   }
 
   function enter() {
     if (!mv) {
       mv = MapView.create($('#pp-map'));
+      mv.onMove(function () { var c = mv.center(); $('#pp-coord').textContent = fmtCoord(c[0], c[1]); });
       mv.onPick(function (code) {
         if (S.pane === 'book' || S.pane === 'list') { if (stampFor(code)) openDetail(code); return; }
         if (S.pane !== 'play' || S.busy) return;
@@ -430,7 +452,7 @@ var Passport = (function () {
     mv.resize(); paintSnd(); paintTries(); S.busy = false; S.answers = false; S.pane = '';
     mv.clearStates(); mv.clearPins(); hideCard();
     var rec = todayRec();
-    mv.settle();   // the map eases out from a close view, so the screen never snaps in
+    swingNeedle(); mv.settle();   // the map eases out from a close view, so the screen never snaps in
     if (rec.result) enterDone();
     else { paintPlay(); restorePlayMap(); showPane('play'); h.startAmbience(); }
   }
