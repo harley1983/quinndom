@@ -2,7 +2,7 @@
    Everything is keyed by the Vietnam day key from Clock, so it works with no server.
    Rules: a day counts when the passport prompt is answered with a valid country (new stamp or repeat).
    A missed day spends one freeze automatically; with too few freezes the streak resets (freezes are kept).
-   One freeze is earned at every 14-day mark, holding at most 2. Milestones at 7, 30, 100, 365 pay 100 mixed resources. */
+   One freeze is earned at every 14-day mark, holding at most 2. Milestones at 7, 30, 100, 365 pay 100 mixed resources and one extra streak freeze (if fewer than 2 are held). */
 var Daily = (function () {
   var MILESTONES = [7, 30, 100, 365], FREEZE_EVERY = 14, FREEZE_MAX = 2, CHECKIN_FOOD = 10, CHECKIN_RES = 5, MILESTONE_EACH = 25;
 
@@ -50,7 +50,8 @@ var Daily = (function () {
       d.milestones.push({ days: d.streak, date: day });
       res = Object.assign({}, Save.get().resources);
       ['wood', 'stone', 'metal', 'food'].forEach(function (k) { res[k] += MILESTONE_EACH; });
-      out.milestone = { days: d.streak, each: MILESTONE_EACH };
+      var gotFreeze = d.freezes < FREEZE_MAX; if (gotFreeze) d.freezes += 1;
+      out.milestone = { days: d.streak, each: MILESTONE_EACH, freeze: gotFreeze };
     }
     out.streak = d.streak; out.freezes = d.freezes;
     put(d, res);

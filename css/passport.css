@@ -218,3 +218,4 @@
 .streak .fl .resi{width:32px;height:32px;display:block}.streak .sn{flex:1;font:700 16px/20px var(--font-head)}.streak .sn b{font:30px/26px var(--font-pixel);font-weight:400;margin-right:4px}
 .streak .fzs{display:flex;gap:4px}.streak .fz{display:inline-flex;opacity:.28;filter:grayscale(1)}.streak .fz.on{opacity:1;filter:none}.streak .fz .resi{width:24px;height:24px;display:block}
 .ms{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#FFE6A8;box-shadow:0 0 0 2px var(--ink);animation:fadeUp .5s var(--ease) both}.ms b{font:20px/20px var(--font-pixel);letter-spacing:2px;color:#6B4B00}
+.mfz{display:flex;align-items:center;gap:8px;font:700 15px/20px var(--font-head)}.mfz .resi{width:26px;height:26px;display:block}

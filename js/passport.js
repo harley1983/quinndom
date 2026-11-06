@@ -81,7 +81,7 @@ var Passport = (function () {
     for (var i = 0; i < Daily.FREEZE_MAX; i++) fr += '<span class="fz' + (i < v.freezes ? ' on' : '') + '">' + Art.res('ice') + '</span>';
     var extra = '';
     if (dl && dl.freezeEarned) extra += '<p class="note">You earned a streak freeze. It protects one missed day.</p>';
-    if (dl && dl.milestone) extra += '<div class="ms"><b>' + dl.milestone.days + '-DAY MILESTONE</b><div class="rewrow">' + rewardRow(dl.milestone.each, false) + '</div></div>';
+    if (dl && dl.milestone) extra += '<div class="ms"><b>' + dl.milestone.days + '-DAY MILESTONE</b><div class="rewrow">' + rewardRow(dl.milestone.each, false) + '</div>' + (dl.milestone.freeze ? '<div class="mfz"><span class="fz on">' + Art.res('ice') + '</span><span>+1 streak freeze</span></div>' : '<p class="note">Your freezes are full, so no extra freeze this time.</p>') + '</div>';
     return '<div class="streak"><span class="fl">' + Art.res('flame') + '</span><span class="sn"><b>' + v.streak + '</b> day' + (v.streak === 1 ? '' : 's') + ' streak</span><span class="fzs" title="Streak freezes">' + fr + '</span></div>' + extra;
   }
   function stampTile(st, big) {
