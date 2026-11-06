@@ -30,7 +30,7 @@
 .w-card h1{margin:0;font-family:var(--font-head);font-weight:700;font-size:58px;line-height:1;letter-spacing:-1px}
 .w-card h2{margin:0;font-family:var(--font-head);font-weight:700;font-size:32px;line-height:38px;text-wrap:balance}
 .w-card .brand{display:flex;align-items:center;gap:16px}
-.w-card .brand svg{width:64px;height:64px}
+.w-card .brand svg{width:80px;height:68px;flex:0 0 auto}
 .w-card .hello{margin:0;font-size:26px;line-height:34px;font-weight:700;text-wrap:balance}
 .w-card .body{margin:0;font-size:18px;line-height:27px;color:var(--body-text)}
 .w-card .small{margin:0;font-size:16px;line-height:24px;color:var(--body-text)}

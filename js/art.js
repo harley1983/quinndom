@@ -6,34 +6,55 @@ var Art = (function () {
     k: '#4A1620', P: '#EFB3B0', R: '#D9737B', B: '#B3261E', Q: '#E58B93', m: '#EEEEEE', n: '#B9C2CC', s: '#F3F7EA', b: '#3A7BD5', t: '#E9D8A6'
   };
 
-  function sprite(rows, cls) {
+  function sprite(rows, cls, pal) {
+    pal = pal || PAL;
     var h = rows.length, w = rows[0].length, out = '';
     for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
       var ch = rows[y].charAt(x);
-      if (ch !== '.' && PAL[ch]) out += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="' + PAL[ch] + '"/>';
+      if (ch !== '.' && pal[ch]) out += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="' + pal[ch] + '"/>';
     }
     return '<svg class="px ' + (cls || '') + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" shape-rendering="crispEdges">' + out + '</svg>';
   }
 
+  var BRAIN_PAL = {'o': '#4A1A24', 'p': '#EFA3AC', 'h': '#F9C9CE', 'd': '#D9798A', 'f': '#C4647A', 'k': '#8E3550', 'v': '#D32F2F', 'b': '#D9798A', 's': '#E08C9A', 'g': '#7BC67A', 'n': '#237A43'};
+
   var SPRITES = {
-    // the logo: a pixel brain with a sprout growing out of it
+    // the logo: a pink brain (folds, cerebellum, brainstem, red blood vessels) with a sprout growing out of it
     brain: [
-      '........gg......',
-      '.......gggg.....',
-      '........f.......',
-      '...kkkkkfkkkk...',
-      '..kBPPPkRPPPBPk.',
-      '.kQBRRPkRRPPBRQk',
-      '.kPRBPRPkRPBRPPk',
-      '.kRPRBPPkRRBPPRk',
-      '.kQPPBRPkPPBRRPk',
-      '.kRRBPPPkRRPBQPk',
-      '..kPBRPRkRPBRRk.',
-      '..kPQPPRkPPQPPk.',
-      '...kkkPPPPPkkk..',
-      '.....kkkkkkkk...',
-      '.......kk.......',
-      '................'
+      '........................................',
+      '...............gg.......................',
+      '..............gggg....ggg...............',
+      '................ggg.nggggg..............',
+      '.................ggn.ggg................',
+      '..................nnn...................',
+      '..............ooooono...................',
+      '...........oooppfffppoooooo.............',
+      '.........ooffppfhppfppfpfffoo...........',
+      '......ooopfpppfpfffpppfpfvpffo..........',
+      '....ooffpfppffffpffphfpppvppppoo........',
+      '...oppffpffvfppppffppfhpffvpffffoo......',
+      '...opfffppfpvhffppppvpppppvvvppfppo.....',
+      '..oppffpppfppvfffpffvpfppvpppvvpppfo....',
+      '..oppfhpfpppfvffpfpppvpffvpfpppvpfpfo...',
+      '.offpppfhfppppvpppphfvppvfppffffvfppfo..',
+      '.ofpfpfffpppfvvpfpppppvppvfpppppfvppfpo.',
+      '.offfffppppvvffvvfppfffvfvpffpppppfffpo.',
+      '.oppfpppfpvppppffvpfpffpfpvpfppvppfppppo',
+      '.ofppppppvppppppppvpfpppfppfppppvvpppppo',
+      '.offffffpffffppfpfvfpppfpppppppppfvpfppo',
+      '.opfpppfkkkppppfkkkvpffppffpfpfpppvfpfo.',
+      '.opfppppfppkkkkkppppkkpppkkkfppfppfvfo..',
+      '..ofpppfppfppppppfffppkkkfppfpfffffvo...',
+      '...ofppfvvfppvvvfffppffppppfpppppfffo...',
+      '....offppfvvvppfffppfppffppfppppddddoo..',
+      '....opppfpppfpppppppfppfffppfffdddddoo..',
+      '....oppfppfppfppppfppfffffppfffffffffo..',
+      '.....opfpfpfppffffpfpppoddddddddddddoo..',
+      '......opfpppfppppposssssoddddddddddoo...',
+      '.......oooooooooooosssssooffffffffoo....',
+      '...................osssssooooooooo......',
+      '...................ossssso..............',
+      '...................ossssso..............'
     ],
     sun: ['..oooo..', '.oyyyyo.', 'oyyyyyyo', 'oyyyyyyo', 'oyyyyyyo', 'oyyyyyyo', '.oyyyyo.', '..oooo..'],
     moon: ['..ooo...', '.omm.o..', 'omm.....', 'omm.....', 'omm.....', 'omnm..o.', '.ommmmo.', '..oooo..'],
@@ -82,5 +103,5 @@ var Art = (function () {
     return '<svg class="px island" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A floating pixel island city" shape-rendering="crispEdges">' + out + '</svg>';
   }
 
-  return { sprite: function (name, cls) { return sprite(SPRITES[name], cls); }, island: island };
+  return { sprite: function (name, cls) { return sprite(SPRITES[name], cls, name === 'brain' ? BRAIN_PAL : null); }, island: island };
 })();
