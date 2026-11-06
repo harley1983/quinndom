@@ -63,8 +63,8 @@ var Screens = (function () {
             '<button class="stepb" id="w-s0" aria-label="Hello">1</button><button class="stepb" id="w-s1" aria-label="Name your city">2</button></div>' +
           '<div class="col" id="w-step0">' +
             '<div class="brand">' + Art.sprite('brain') + '<h1 data-focus tabindex="-1">QuinnDom</h1></div>' +
-            '<p class="hello">Hello, tiny island. Hello, you.</p>' +
-            '<p class="body">One puzzle a day grows one small floating city. About ten minutes, no account, no ads, and nobody will ever shout at you for sleeping in.</p>' +
+            '<p class="hello">The world is a lot. Here’s a tiny island.</p>' +
+            '<p class="body">Solve a puzzle. Build something lovely. Leave whenever you like. Your city will still be here, quietly photosynthesizing. No account, no ads, no streak-shaming.</p>' +
             '<div class="row"><button class="pbtn" id="w-go">Let’s go</button><button class="plink" id="w-import">I already have a save file</button></div>' +
             '<p class="err" id="w-err" role="alert"></p>' +
             '<div class="row" style="padding:0"><button class="plink" id="w-settings">Sound &amp; settings</button></div>' +
