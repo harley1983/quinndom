@@ -5,7 +5,7 @@ var Screens = (function () {
   function el(html) { var t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
   function $(sel, scope) { return (scope || root).querySelector(sel); }
 
-  function toast(text) {
+  function toast(text, plain) {
     var t = document.getElementById('toast');
     if (!t) return;
     t.textContent = '♪ ' + text;
@@ -178,7 +178,7 @@ var Screens = (function () {
       '<section class="screen" id="screen-home" aria-label="Home"><div class="h-stage">' +
         '<div class="h-top"><div class="pxp name" id="h-city"></div><button class="pbtn light" id="h-settings">Settings</button></div>' +
         '<div class="pxp h-main">' +
-          '<span class="tag">DAY 1</span>' +
+          '<div class="h-clock"><span class="tag" id="h-day">DAY 1</span><span class="h-date" id="h-date"></span><span class="h-count" id="h-count" aria-label="Time until the new day"></span></div>' +
           '<h1 data-focus tabindex="-1" id="h-title"></h1>' +
           '<p>Your first tower is planted. The check-in reward, today’s passport prompt and your streak arrive in the next steps of Release 1.</p>' +
           '<p>Your save lives in this browser. Export a copy from Settings now and then.</p>' +
@@ -189,6 +189,8 @@ var Screens = (function () {
   }
   function refreshHome() {
     var s = Save.get();
+    var dn = $('#h-day'); if (dn) dn.textContent = 'DAY ' + Clock.dayNumber(s.createdAt);
+    var dt = $('#h-date'); if (dt) dt.textContent = Clock.formatDate() + ' \u00B7 Vietnam time';
     $('#h-city').textContent = s.cityName;
     $('#h-title').textContent = 'Welcome, ' + (s.playerName || 'traveller') + '.';
   }
@@ -291,6 +293,9 @@ var Screens = (function () {
       var b = e.target.closest('.pbtn, .plink, .stepb');
       if (b && !b.id.match(/^(w-s0|w-s1|sw-sfx)$/) && !b.closest('#s-moments')) Sound.play('tap');
     }, true);
+    Clock.onTick(function (left) { var c = root.querySelector('#h-count'); if (c) c.textContent = 'NEW DAY IN ' + Clock.formatCountdown(left); });
+    Clock.onNewDay(function () { refreshHome(); toast('A new day has started', true); });
+    Clock.start();
     refreshHome();
     show(Save.hasCity() ? 'home' : 'welcome');
   }

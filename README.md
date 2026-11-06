@@ -12,6 +12,8 @@ index.html          page shell
 css/tokens.css      palette v4 colours, pixel UI tokens, fonts
 css/ui.css          buttons, inputs, switches, slider, toast
 css/screens.css     welcome, home and settings layouts
+js/clock.js         day clock (Vietnam time, new day at 00:00)
+js/countries.js     194 countries, aliases, answer matching and suggestions
 js/save.js          save in localStorage + export/import of a JSON save file
 js/sound.js         sound engine (Web Audio, no audio files)
 js/art.js           pixel art drawn in code (brain logo, island, secrets)
@@ -32,3 +34,6 @@ Sound.startAmbience('garden');  // call when a puzzle opens (garden, rain, night
 Sound.stopAmbience();           // call when it ends (fades out)
 ```
 Moment names: tap, collect, correct, notquite, stamp, solved, milestone, bossin, bosshit, bossend.
+
+## Testing the day rollover
+Open the game with `?now=2026-11-06T16:59:50Z` at the end of the address. That starts the clock at 23:59:50 Vietnam time, so the day turns over after 10 seconds.

@@ -70,3 +70,7 @@
 .s-now{font-family:var(--font-pixel);font-size:24px;color:#6B4B00;min-height:24px}
 .s-hint{margin:0;font-size:15px;color:var(--body-text);line-height:21px}
 .s-hr{border:0;height:3px;background:var(--parchment-shade);margin:0}
+
+.h-clock{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px}
+.h-date{font-size:16px;color:var(--body-text)}
+.h-count{font-family:var(--font-pixel);font-size:26px;color:var(--harbour);margin-left:auto}
