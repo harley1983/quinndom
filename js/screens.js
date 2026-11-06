@@ -8,7 +8,7 @@ var Screens = (function () {
   function toast(text, plain) {
     var t = document.getElementById('toast');
     if (!t) return;
-    t.textContent = '♪ ' + text;
+    t.textContent = (plain ? '' : '\u266A ') + text;
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1100);
