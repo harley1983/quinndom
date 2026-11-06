@@ -68,6 +68,12 @@ var Passport = (function () {
     };
     return '<svg viewBox="0 0 120 150" aria-hidden="true">' + base + (art[family] || art['Location']) + '</svg>';
   }
+  /* a reward line with icons: +10 [wood] +10 [stone] ... (the number can count up) */
+  function rewardRow(amount, counted) {
+    return ['wood', 'stone', 'metal', 'food'].map(function (k) {
+      return '<span class="rwd" title="' + k + '">' + Art.res(k) + '<b' + (counted ? ' class="cu"' : '') + '>' + (counted ? '0' : amount) + '</b></span>';
+    }).join('');
+  }
   function stampTile(st, big) {
     var c = Countries.byCode(st.code); if (!c) return '';
     var rot = ((st.code.charCodeAt(0) * 7 + st.code.charCodeAt(1) * 13) % 9) - 4;
@@ -236,7 +242,7 @@ var Passport = (function () {
     } else {
       var st = stampFor(c.code);
       html = '<div class="stampwrap pop">' + stampTile(st, true) + '</div><h2>' + (c.gold ? 'Gold stamp!' : 'New stamp!') + '</h2><p class="why">' + esc(c.name) + ' is in your passport.' + (c.gold ? ' A rare country, so the reward is doubled.' : '') + '</p>' +
-        '<p class="rew">+' + r.amount + ' wood · +' + r.amount + ' stone · +' + r.amount + ' metal · +' + r.amount + ' food</p>';
+        '<div class="rewrow" aria-label="Reward">' + rewardRow(r.amount, false) + '</div>';
       $('#pp-next').textContent = 'SEE RESULTS ▲';
     }
     el.innerHTML = html;
@@ -272,7 +278,7 @@ var Passport = (function () {
     $('#pane-done .inner').innerHTML =
       '<div class="sumbox"><ol class="sumlist">' + rows + '</ol><div class="sumart">' + (st ? stampTile(st, false) : '<div class="postcard small">' + postcard(p.family) + '</div>') + '</div></div>' +
       '<h2 data-focus tabindex="-1">' + head + '</h2><p class="why">' + sub + '</p>' +
-      (amt ? '<div class="rewrow"><span>+<b class="cu">0</b> wood</span><span>+<b class="cu">0</b> stone</span><span>+<b class="cu">0</b> metal</span><span>+<b class="cu">0</b> food</span></div>' : '') +
+      (amt ? '<div class="rewrow" aria-label="Reward">' + rewardRow(amt, true) + '</div>' : '') +
       '<div class="tiles"><button class="tile" id="pp-open-book"><b>PASSPORT</b><span>' + n + ' of ' + Countries.count + ' countries</span></button><button class="tile" id="pp-open-ans" aria-pressed="false" aria-controls="pp-anslist"><b>ANSWERS</b><span>' + p.answers.length + ' fit today</span></button></div>' +
       '<div class="anslist" id="pp-anslist" hidden><p class="rulebox"><b>THE RULE</b>' + esc(p.rule) + '</p><ul>' + answers + '</ul></div>' +
       '<div class="nextin"><span class="cnt" id="pp-count2"></span><span>until tomorrow’s prompt</span></div>' +

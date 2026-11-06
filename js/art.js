@@ -103,5 +103,22 @@ var Art = (function () {
     return '<svg class="px island" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A floating pixel island city" shape-rendering="crispEdges">' + out + '</svg>';
   }
 
-  return { sprite: function (name, cls) { return sprite(SPRITES[name], cls, name === 'brain' ? BRAIN_PAL : null); }, island: island };
+
+  /* resource icons, 12 x 12 pixels: wood log, stone, metal ingot, food (wheat); aria-label carries the name */
+  var RES = {
+    wood: { pal: { o: '#14261B', b: '#A8673F', B: '#C98A5A', r: '#E9D8A6', d: '#7A4A2B' }, rows: [
+      '............', '............', '..oooooooo..', '.obBBBBBBdo.', 'orrooBBBBBdo', 'orroorBBBBdo', 'orroorBBBBdo', 'orrooBBBBBdo', '.obBBBBBBdo.', '..oooooooo..', '............', '............'] },
+    stone: { pal: { o: '#14261B', s: '#B9C2CC', S: '#8A94A0', h: '#EEEEEE' }, rows: [
+      '............', '............', '....oooo....', '..ooshhsoo..', '.oshhsssSSo.', '.oshssssSSo.', 'ossssssSSSSo', 'osssssSSSSSo', 'oSSSSSSSSSSo', '.ooSSSSSSoo.', '...oooooo...', '............'] },
+    metal: { pal: { o: '#14261B', m: '#8FA3B5', M: '#5D6B78', h: '#EEF3F8' }, rows: [
+      '............', '............', '...oooooooo.', '..ohhhhhhmo.', '.ohhhhhhmmMo', 'ommmmmmmmMMo', 'ommmmmmmMMMo', 'oMMMMMMMMMo.', '.ooooooooo..', '............', '............', '............'] },
+    food: { pal: { o: '#14261B', g: '#7BC67A', f: '#237A43', y: '#F7C948', Y: '#E9C46A' }, rows: [
+      '.....oo.....', '....oyyo....', '...oyYYyo...', '..oyyYYyyo..', '..oYyyyyYo..', '...oyYYyo...', '....oyyo.oo.', '..oo.oYo.ffo', '.offo.oo.fgo', '.ofgfo..ofo.', '..ofgfoofo..', '...oooooo...'] }
+  };
+  function resIcon(k, cls) {
+    var d = RES[k]; if (!d) return '';
+    var s = sprite(d.rows, 'resi ' + (cls || ''), d.pal);
+    return s.replace('aria-hidden="true"', 'role="img" aria-label="' + k + '"');
+  }
+  return { res: resIcon, sprite: function (name, cls) { return sprite(SPRITES[name], cls, name === 'brain' ? BRAIN_PAL : null); }, island: island };
 })();

@@ -335,11 +335,12 @@ var Stamps = (function () {
 
   function fit(n, arc, max) { return Math.max(8, Math.min(max, (arc / n - 2) / 0.64)).toFixed(1); }
 
+  var UID = 0;
   function stamp(d, i, gold) {
     var name = (d[5] || d[0]).toUpperCase(), cap = d[1].toUpperCase();
     var ring = gold ? '#C9971F' : (RING[d[4]] || '#2B2B2B'), ink = gold ? '#FFF3C4' : '#F3F7EA';
     var flagRing = !gold && d[4] === 'PS';
-    var id = 's' + i, v = hash(d[0]) % 3;
+    var id = 's' + i + 'u' + (++UID), v = hash(d[0]) % 3;
     var scene = UNIQUE[d[0]] ? UNIQUE[d[0]]() : (SCENES[d[3]] || SCENES.island)(v);
     return '<svg viewBox="0 0 200 200" role="img" aria-label="' + d[0] + ' stamp">' +
       '<defs><clipPath id="c' + id + '"><circle cx="100" cy="100" r="66"/></clipPath>' +

@@ -129,7 +129,10 @@
 .sumlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sumlist li{display:flex;align-items:center;gap:10px;font-size:15px}.sumlist .n{font:20px var(--font-pixel);width:14px}.sumlist .c{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sumlist .skip{opacity:.45}
 .sumart{display:flex;align-items:center;justify-content:center;padding:6px 14px 6px 6px}
-.rewrow{display:flex;flex-wrap:wrap;gap:6px 16px;font:24px/24px var(--font-pixel);color:#6B4B00}
+.rewrow{display:flex;flex-wrap:nowrap;gap:6px}
+.rwd{display:inline-flex;align-items:center;gap:3px;padding:4px 4px 4px 3px;flex:1 1 0;min-width:0;justify-content:center;background:var(--note-yellow);box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink);font:24px/26px var(--font-pixel);color:var(--ink)}
+.rwd b{font-weight:400}.rwd b::before{content:'+'}
+.resi{width:28px;height:28px;display:block;flex:none}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tile{padding:12px 8px;border:0;cursor:pointer;background:var(--paper);box-shadow:0 0 0 3px var(--brown),0 5px 0 3px rgba(42,31,24,.25);display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;font-family:var(--font-body);color:var(--brown);transition:transform .2s var(--ease),background .2s}
 .tile:hover{transform:translateY(-3px);background:#FFF3C4}.tile[aria-pressed="true"]{background:#F6DE92}
