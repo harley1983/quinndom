@@ -75,3 +75,31 @@
 .h-clock{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px}
 .h-date{font-size:16px;color:var(--body-text)}
 .h-count{font-family:var(--font-pixel);font-size:26px;color:var(--harbour);margin-left:auto}
+
+/* ---------- Daily core: streak banner, Today list, check-in card ---------- */
+.h-streak{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--note-yellow);box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink)}
+.h-streak .fl .resi{width:44px;height:44px;display:block}
+.h-streak .sn{flex:1;min-width:0;font:700 18px/22px var(--font-head);color:var(--ink)}
+.h-streak .sn b{font:40px/36px var(--font-pixel);font-weight:400;margin-right:6px}
+.h-streak .sn small{display:block;font:400 14px/18px var(--font-body);color:var(--body-text)}
+.fzs{display:flex;gap:6px}.fz{display:inline-flex;opacity:.28;filter:grayscale(1)}.fz.on{opacity:1;filter:none}.fz .resi{width:30px;height:30px;display:block}
+.h-today{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.h-today h2{margin:0;font:700 22px/26px var(--font-head)}
+.h-tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.h-tasks li{display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(255,255,255,.55);box-shadow:0 0 0 2px var(--ink)}
+.h-tasks li.soon{opacity:.55}
+.h-tasks .ck{flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 0 0 2px var(--ink);font:24px/1 var(--font-pixel);color:var(--mist)}
+.h-tasks .ck.on{background:var(--canopy)}
+.h-tasks .tx{flex:1;min-width:0;display:flex;flex-direction:column}.h-tasks .tx b{font:700 17px/22px var(--font-head)}.h-tasks .tx small{font-size:14px;line-height:18px;color:var(--body-text)}
+.h-tasks .soon{font:18px var(--font-pixel);letter-spacing:2px;color:var(--body-text)}
+.h-tasks .pbtn{min-height:40px;padding:0 16px;font-size:16px}
+.h-note{font-size:14px !important;line-height:20px !important}
+.ci-back{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(20,38,27,.55);animation:ciIn .35s ease both}
+.ci-back.out{animation:ciOut .26s ease both}
+.ci-card{max-width:460px;width:100%;padding:24px 26px 26px;display:flex;flex-direction:column;gap:14px;animation:ciPop .55s cubic-bezier(.2,.8,.2,1) both}
+.ci-card h2{margin:0;font:700 28px/32px var(--font-head)}.ci-card p{margin:0;font-size:17px;line-height:25px;color:var(--body-text)}
+.ci-card .tag{font:22px var(--font-pixel);letter-spacing:3px;color:#6B4B00}
+.ci-note{padding:10px 12px;background:var(--note-yellow);box-shadow:0 0 0 2px var(--ink);font-size:15px !important;line-height:22px !important}.ci-note.good{background:#D9F0C9}
+@keyframes ciIn{from{opacity:0}to{opacity:1}}@keyframes ciOut{to{opacity:0}}
+@keyframes ciPop{0%{opacity:0;transform:translateY(24px) scale(.94)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ci-back,.ci-card{animation:none}}

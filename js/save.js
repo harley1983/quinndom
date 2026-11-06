@@ -12,6 +12,7 @@ var Save = (function () {
       createdAt: null,
       settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
       resources: { wood: 0, stone: 0, metal: 0, food: 0 },
+      daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
       passport: { stamps: [], days: {} }   // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
     };
   }
@@ -30,6 +31,16 @@ var Save = (function () {
     d.settings.volume = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
     var r = raw.resources || {};
     ['wood', 'stone', 'metal', 'food'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    var dl = raw.daily || {}, key = /^\d{4}-\d{2}-\d{2}$/;
+    function whole(n) { n = Math.floor(Number(n)); return isFinite(n) && n > 0 ? n : 0; }
+    d.daily.checkinDay = key.test(dl.checkinDay) ? dl.checkinDay : null;
+    if (dl.checkin && typeof dl.checkin === 'object') d.daily.checkin = { food: whole(dl.checkin.food), res: ['wood', 'stone', 'metal'].indexOf(dl.checkin.res) >= 0 ? dl.checkin.res : 'wood', amount: whole(dl.checkin.amount) };
+    d.daily.streak = whole(dl.streak); d.daily.best = Math.max(d.daily.streak, whole(dl.best));
+    d.daily.freezes = Math.min(2, whole(dl.freezes));
+    d.daily.lastCounted = key.test(dl.lastCounted) ? dl.lastCounted : null;
+    d.daily.syncedDay = key.test(dl.syncedDay) ? dl.syncedDay : null;
+    if (dl.notice && (dl.notice.type === 'freeze' || dl.notice.type === 'reset')) d.daily.notice = { type: dl.notice.type, n: whole(dl.notice.n) };
+    if (Array.isArray(dl.milestones)) d.daily.milestones = dl.milestones.filter(function (m) { return m && [7, 30, 100, 365].indexOf(m.days) >= 0 && key.test(m.date); }).map(function (m) { return { days: m.days, date: m.date }; });
     var pp = raw.passport || {};
     if (Array.isArray(pp.stamps)) d.passport.stamps = pp.stamps.filter(function (st) {
       return st && typeof st.code === 'string' && /^[A-Z]{2}$/.test(st.code) && typeof st.date === 'string';
@@ -71,6 +82,7 @@ var Save = (function () {
       createdAt: patch.createdAt !== undefined ? patch.createdAt : cur.createdAt,
       settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings,
       resources: patch.resources || cur.resources,
+      daily: patch.daily || cur.daily,
       passport: patch.passport || cur.passport
     });
     write(next);

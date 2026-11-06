@@ -212,3 +212,9 @@
 .pp-compass .needle{transform-origin:50px 50px;transform-box:view-box}
 .pp-compass .cc{font:18px/18px var(--font-pixel);letter-spacing:1px;color:var(--ink);padding:1px 6px;background:rgba(251,247,234,.92);box-shadow:0 0 0 2px var(--brown);white-space:nowrap}
 @media (max-width:860px){.pp-compass{display:flex;right:8px;bottom:28px}.pp-compass svg{width:70px;height:70px}.pp-compass .cc{font-size:14px;line-height:14px;padding:0 4px}}
+
+/* streak line inside the passport panels */
+.streak{display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--note-yellow);box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.streak .fl .resi{width:32px;height:32px;display:block}.streak .sn{flex:1;font:700 16px/20px var(--font-head)}.streak .sn b{font:30px/26px var(--font-pixel);font-weight:400;margin-right:4px}
+.streak .fzs{display:flex;gap:4px}.streak .fz{display:inline-flex;opacity:.28;filter:grayscale(1)}.streak .fz.on{opacity:1;filter:none}.streak .fz .resi{width:24px;height:24px;display:block}
+.ms{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#FFE6A8;box-shadow:0 0 0 2px var(--ink);animation:fadeUp .5s var(--ease) both}.ms b{font:20px/20px var(--font-pixel);letter-spacing:2px;color:#6B4B00}

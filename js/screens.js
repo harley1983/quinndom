@@ -183,14 +183,14 @@ var Screens = (function () {
         '<div class="pxp h-main">' +
           '<div class="h-clock"><span class="tag" id="h-day">DAY 1</span><span class="h-date" id="h-date"></span><span class="h-count" id="h-count" aria-label="Time until the new day"></span></div>' +
           '<h1 data-focus tabindex="-1" id="h-title"></h1>' +
-          '<div class="pxp h-pass"><div class="t"><b>Today\u2019s passport</b><span id="h-pass-s"></span></div><button class="pbtn" id="h-pass-go">Open passport</button></div>' +
-          '<p>Your first tower is planted. The check-in reward and your streak arrive in the next steps of Release 1.</p>' +
-          '<p>Your save lives in this browser. Export a copy from Settings now and then.</p>' +
+          '<div class="h-streak" id="h-streak"></div>' +
+          '<div class="pxp h-today"><h2>Today</h2><ol class="h-tasks" id="h-tasks"></ol></div>' +
+          '<p class="h-note">Your save lives in this browser. Export a copy from Settings now and then.</p>' +
         '</div>' +
       '</div></section>');
     root.appendChild(node);
+    node.__enter = function () { refreshHome(); checkinCard(); };
     $('#h-settings', node).addEventListener('click', function () { show('settings'); });
-    $('#h-pass-go', node).addEventListener('click', function () { show('passport'); });
   }
   function refreshHome() {
     var s = Save.get();
@@ -199,6 +199,51 @@ var Screens = (function () {
     $('#h-city').textContent = s.cityName;
     var ps = $('#h-pass-s'); if (ps) { var sm = Passport.summary(); ps.textContent = sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps'; var pg = $('#h-pass-go'); if (pg) pg.textContent = sm.done ? 'View passport' : 'Open passport'; }
     $('#h-title').textContent = 'Welcome, ' + (s.playerName || 'traveller') + '.';
+    paintToday();
+  }
+  /* streak banner and the Today task list (PRD FR-1.5) */
+  function paintToday() {
+    var v = Daily.view(), sm = Passport.summary(), fr = '';
+    for (var i = 0; i < Daily.FREEZE_MAX; i++) fr += '<span class="fz' + (i < v.freezes ? ' on' : '') + '" title="Streak freeze">' + Art.res('ice') + '</span>';
+    var st = $('#h-streak'); if (!st) return;
+    var nxt = v.nextMilestone ? (v.nextMilestone - v.streak) + ' days to the ' + v.nextMilestone + '-day milestone' : 'Every milestone reached';
+    st.innerHTML = '<span class="fl">' + Art.res('flame') + '</span><div class="sn"><b>' + v.streak + '</b> day' + (v.streak === 1 ? '' : 's') + ' streak<small>' + nxt + (v.toFreeze ? ' \u00B7 freeze in ' + v.toFreeze : '') + '</small></div><div class="fzs" aria-label="' + v.freezes + ' streak freezes held">' + fr + '</div>';
+    var tasks = [
+      { done: v.checkedIn, label: 'Check in', sub: v.checkedIn ? 'Reward collected' : 'Reward waiting', go: null },
+      { done: sm.done, label: 'Passport prompt', sub: sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps', go: 'passport' },
+      { done: false, label: 'Puzzle', sub: 'Arrives in Release 2', soon: true },
+      { done: false, label: 'Citizens and city', sub: 'Arrives in Releases 3 and 4', soon: true },
+      { done: false, label: 'World-map boss', sub: 'Arrives in Release 5', soon: true }
+    ];
+    $('#h-tasks').innerHTML = tasks.map(function (t, i) {
+      var box = '<span class="ck' + (t.done ? ' on' : '') + '" aria-hidden="true">' + (t.done ? '\u2713' : '') + '</span>';
+      var body = '<span class="tx"><b>' + t.label + '</b><small>' + t.sub + '</small></span>';
+      var act = t.go ? '<button class="pbtn' + (t.done ? ' light' : '') + '" data-go="' + t.go + '">' + (t.done ? 'View' : 'Open') + '</button>' : (t.soon ? '<span class="soon">SOON</span>' : '');
+      return '<li class="' + (t.soon ? 'soon' : '') + (t.done ? ' done' : '') + '">' + box + body + act + '</li>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('#h-tasks [data-go]'), function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-go')); }); });
+  }
+  /* the daily check-in card: shown once on the first visit of a day */
+  function checkinCard() {
+    if (!Save.hasCity()) return;
+    var r = Daily.checkin(); if (!r) return;
+    var home = document.getElementById('screen-home'); if (!home) return;
+    var parts = '';
+    function chip(k, n) { return '<span class="rwd" title="' + k + '">' + Art.res(k) + '<b>' + n + '</b></span>'; }
+    var msg = '';
+    if (r.notice && r.notice.type === 'freeze') msg = '<p class="ci-note good">You missed ' + (r.notice.n === 1 ? 'a day' : r.notice.n + ' days') + ', so ' + (r.notice.n === 1 ? 'a streak freeze was' : r.notice.n + ' streak freezes were') + ' used. Your streak is safe.</p>';
+    else if (r.notice && r.notice.type === 'reset') msg = '<p class="ci-note">Your ' + r.notice.n + '-day streak took a rest while you were away. A new one starts with today\u2019s prompt. Welcome back.</p>';
+    var card = el('<div class="ci-back" role="dialog" aria-modal="true" aria-labelledby="ci-h"><div class="pxp ci-card"><span class="tag">DAILY CHECK-IN</span><h2 id="ci-h" data-focus tabindex="-1">Good morning, ' + (Save.get().playerName || 'traveller') + '</h2>' +
+      '<p>Day ' + Clock.dayNumber(Save.get().createdAt) + ' of your city. Here is today\u2019s reward.</p>' +
+      '<div class="rewrow">' + chip('food', r.reward.food) + chip(r.reward.res, r.reward.amount) + '</div>' + msg +
+      '<button class="pbtn" id="ci-ok">Collect</button></div></div>');
+    home.appendChild(card);
+    Sound.play('collect');
+    var ok = card.querySelector('#ci-ok'); ok.focus();
+    function close() { card.classList.add('out'); setTimeout(function () { card.remove(); refreshHome(); }, 260); }
+    ok.addEventListener('click', function () { Sound.play('tap'); close(); });
+    card.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    refreshHome();
   }
 
   /* ---------------- Settings ---------------- */
@@ -304,7 +349,7 @@ var Screens = (function () {
       if (b && !b.id.match(/^(w-s0|w-s1|sw-sfx)$/) && !b.closest('#s-moments')) Sound.play('tap');
     }, true);
     Clock.onTick(function (left) { var c = root.querySelector('#h-count'); if (c) c.textContent = 'NEW DAY IN ' + Clock.formatCountdown(left); });
-    Clock.onNewDay(function () { refreshHome(); toast('A new day has started', true); });
+    Clock.onNewDay(function () { refreshHome(); toast('A new day has started', true); var h = root.querySelector('#screen-home'); if (h && h.classList.contains('active')) checkinCard(); });
     Clock.start();
     refreshHome();
     show(Save.hasCity() ? 'home' : 'welcome');

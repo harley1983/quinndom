@@ -115,6 +115,10 @@ var Art = (function () {
     food: { pal: { o: '#14261B', g: '#7BC67A', f: '#237A43', y: '#F7C948', Y: '#E9C46A' }, rows: [
       '.....oo.....', '....oyyo....', '...oyYYyo...', '..oyyYYyyo..', '..oYyyyyYo..', '...oyYYyo...', '....oyyo.oo.', '..oo.oYo.ffo', '.offo.oo.fgo', '.ofgfo..ofo.', '..ofgfoofo..', '...oooooo...'] }
   };
+  RES.flame = { pal: { o: '#14261B', r: '#C8693D', y: '#F7C948', w: '#FFF3C4' }, rows: [
+      '.....oo.....', '....orro....', '....orro....', '...orrrro...', '..orryyrro..', '..orryyyro..', '.orryywyyro.', '.orryywwyro.', '.orryywwyro.', '..orryyyro..', '...orrrro...', '....oooo....'] };
+  RES.ice = { pal: { o: '#14261B', c: '#7ADFF2', w: '#FFFFFF', b: '#3A7BD5' }, rows: [
+      '.....oo.....', '..o..oc.o...'.slice(0,12), '.occ.cw.cco.', '..occcwcco..', '...ocwwco...', 'ooccwwwwccoo', 'occwwwwwwcco', '...ocwwco...', '..occcwcco..', '.occ.cw.cco.', '..o..oc.o...', '.....oo.....'] };
   function resIcon(k, cls) {
     var d = RES[k]; if (!d) return '';
     var s = sprite(d.rows, 'resi ' + (cls || ''), d.pal);

@@ -51,7 +51,8 @@ var Passport = (function () {
     }
     days[key] = next;
     Save.update({ passport: { stamps: stamps, days: days }, resources: res });
-    return { ok: true, outcome: outcome, country: c, amount: amt };
+    var dl = valid ? Daily.countToday() : null;
+    return { ok: true, outcome: outcome, country: c, amount: amt, daily: dl };
   }
 
   /* ---- art: postcards (one per prompt family) and stamps ---- */
@@ -73,6 +74,15 @@ var Passport = (function () {
     return ['wood', 'stone', 'metal', 'food'].map(function (k) {
       return '<span class="rwd" title="' + k + '">' + Art.res(k) + '<b' + (counted ? ' class="cu"' : '') + '>' + (counted ? '0' : amount) + '</b></span>';
     }).join('');
+  }
+  /* streak line: flame + days, freeze icons, and any freeze or milestone just earned */
+  function streakBlock(dl) {
+    var v = Daily.view(), fr = '';
+    for (var i = 0; i < Daily.FREEZE_MAX; i++) fr += '<span class="fz' + (i < v.freezes ? ' on' : '') + '">' + Art.res('ice') + '</span>';
+    var extra = '';
+    if (dl && dl.freezeEarned) extra += '<p class="note">You earned a streak freeze. It protects one missed day.</p>';
+    if (dl && dl.milestone) extra += '<div class="ms"><b>' + dl.milestone.days + '-DAY MILESTONE</b><div class="rewrow">' + rewardRow(dl.milestone.each, false) + '</div></div>';
+    return '<div class="streak"><span class="fl">' + Art.res('flame') + '</span><span class="sn"><b>' + v.streak + '</b> day' + (v.streak === 1 ? '' : 's') + ' streak</span><span class="fzs" title="Streak freezes">' + fr + '</span></div>' + extra;
   }
   function stampTile(st, big) {
     var c = Countries.byCode(st.code); if (!c) return '';
@@ -237,12 +247,12 @@ var Passport = (function () {
         (rec.result === 'missed' ? '<p class="note">That was your last try. Next you will see what fits, so you can learn it.</p>' : '<p class="note">' + left + (left === 1 ? ' try' : ' tries') + ' left. Look at where you pinned and think again.</p>');
       $('#pp-next').textContent = rec.result === 'missed' ? 'SEE RESULTS ▲' : 'NEXT TRY ▲';
     } else if (r.outcome === 'repeat') {
-      html = tag('HIT', 'hit big') + '<h2>“' + esc(c.name) + '”</h2><p class="why">Right answer, old friend.</p><p class="note">It is already in your passport, so no new stamp today. Try a different country on a later day to grow the book.</p>';
+      html = tag('HIT', 'hit big') + '<h2>“' + esc(c.name) + '”</h2><p class="why">Right answer, old friend.</p><p class="note">It is already in your passport, so no new stamp today. Try a different country on a later day to grow the book.</p>' + streakBlock(r.daily);
       $('#pp-next').textContent = 'SEE RESULTS ▲';
     } else {
       var st = stampFor(c.code);
       html = '<div class="stampwrap pop">' + stampTile(st, true) + '</div><h2>' + (c.gold ? 'Gold stamp!' : 'New stamp!') + '</h2><p class="why">' + esc(c.name) + ' is in your passport.' + (c.gold ? ' A rare country, so the reward is doubled.' : '') + '</p>' +
-        '<div class="rewrow" aria-label="Reward">' + rewardRow(r.amount, false) + '</div>';
+        '<div class="rewrow" aria-label="Reward">' + rewardRow(r.amount, false) + '</div>' + streakBlock(r.daily);
       $('#pp-next').textContent = 'SEE RESULTS ▲';
     }
     el.innerHTML = html;
@@ -279,6 +289,7 @@ var Passport = (function () {
       '<div class="sumbox"><ol class="sumlist">' + rows + '</ol><div class="sumart">' + (st ? stampTile(st, false) : '<div class="postcard small">' + postcard(p.family) + '</div>') + '</div></div>' +
       '<h2 data-focus tabindex="-1">' + head + '</h2><p class="why">' + sub + '</p>' +
       (amt ? '<div class="rewrow" aria-label="Reward">' + rewardRow(amt, true) + '</div>' : '') +
+      (rec.result === 'missed' ? '' : streakBlock(null)) +
       '<div class="tiles"><button class="tile" id="pp-open-book"><b>PASSPORT</b><span>' + n + ' of ' + Countries.count + ' countries</span></button><button class="tile" id="pp-open-ans" aria-pressed="false" aria-controls="pp-anslist"><b>ANSWERS</b><span>' + p.answers.length + ' fit today</span></button></div>' +
       '<div class="anslist" id="pp-anslist" hidden><p class="rulebox"><b>THE RULE</b>' + esc(p.rule) + '</p><ul>' + answers + '</ul></div>' +
       '<div class="nextin"><span class="cnt" id="pp-count2"></span><span>until tomorrow’s prompt</span></div>' +
