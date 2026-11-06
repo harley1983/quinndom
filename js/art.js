@@ -3,7 +3,7 @@ var Art = (function () {
   var PAL = {
     o: '#14261B', w: '#B392AC', l: '#CDB4DB', g: '#7BC67A', f: '#237A43',
     y: '#F7C948', Y: '#E9C46A', r: '#C8693D', v: '#6E54A3', V: '#8E75C4', p: '#D9638F', q: '#FFAFCC',
-    m: '#EEEEEE', n: '#B9C2CC', s: '#F3F7EA', b: '#3A7BD5', t: '#E9D8A6'
+    k: '#4A1620', P: '#EFB3B0', R: '#D9737B', B: '#B3261E', Q: '#E58B93', m: '#EEEEEE', n: '#B9C2CC', s: '#F3F7EA', b: '#3A7BD5', t: '#E9D8A6'
   };
 
   function sprite(rows, cls) {
@@ -18,10 +18,22 @@ var Art = (function () {
   var SPRITES = {
     // the logo: a pixel brain with a sprout growing out of it
     brain: [
-      '........gg......', '.......gggg.....', '........f.......', '...ooooofoooo...',
-      '..ollllowlllllo.', '.ollwwlowwllwwlo', '.olwllwlowllwllo', '.owlwwllowwlllwo',
-      '.olllwwlolllwwlo', '.owwllllowwllllo', '..olwwlwowllwwo.', '..ollllwolllllo.',
-      '...ooolllllooo..', '.....oooooooo...', '.......oo.......', '................'
+      '........gg......',
+      '.......gggg.....',
+      '........f.......',
+      '...kkkkkfkkkk...',
+      '..kBPPPkRPPPBPk.',
+      '.kQBRRPkRRPPBRQk',
+      '.kPRBPRPkRPBRPPk',
+      '.kRPRBPPkRRBPPRk',
+      '.kQPPBRPkPPBRRPk',
+      '.kRRBPPPkRRPBQPk',
+      '..kPBRPRkRPBRRk.',
+      '..kPQPPRkPPQPPk.',
+      '...kkkPPPPPkkk..',
+      '.....kkkkkkkk...',
+      '.......kk.......',
+      '................'
     ],
     sun: ['..oooo..', '.oyyyyo.', 'oyyyyyyo', 'oyyyyyyo', 'oyyyyyyo', 'oyyyyyyo', '.oyyyyo.', '..oooo..'],
     moon: ['..ooo...', '.omm.o..', 'omm.....', 'omm.....', 'omm.....', 'omnm..o.', '.ommmmo.', '..oooo..'],
