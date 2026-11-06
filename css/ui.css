@@ -1,0 +1,49 @@
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{font-family:var(--font-body);color:var(--ink);background:var(--ink);-webkit-font-smoothing:antialiased}
+.px{image-rendering:pixelated;shape-rendering:crispEdges}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* stepped 3px ink outline */
+.pxp{background:var(--parchment);box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink)}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:18px;min-height:48px;padding:0 24px;border:0;cursor:pointer;text-decoration:none;
+  background:var(--canopy);color:var(--mist);
+  box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink),inset 0 -4px 0 0 var(--forest)}
+.pbtn:hover{background:#2B8A4F}
+.pbtn:active{transform:translateY(2px)}
+.pbtn.light{background:var(--parchment);color:var(--ink);font-size:16px;padding:0 16px;
+  box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink),inset 0 -4px 0 0 var(--parchment-shade)}
+.pbtn.light:hover{background:var(--note-yellow)}
+.plink{font-family:var(--font-body);font-weight:700;font-size:16px;min-height:44px;padding:0 6px;border:0;background:transparent;color:var(--forest);cursor:pointer;text-decoration:underline;text-underline-offset:4px}
+.plink:hover{color:var(--ink)}
+.pbtn:focus-visible,.plink:focus-visible,.stepb:focus-visible,.pin:focus-visible,.egg:focus-visible,.pswitch:focus-visible,.prange:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.stepb{width:44px;height:44px;padding:0;border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-pixel);font-size:24px;color:var(--ink);
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.pin{width:100%;min-height:48px;padding:0 14px;border:0;background:#fff;font-family:var(--font-body);font-size:18px;color:var(--ink);
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.pin::placeholder{color:#5C6B60}
+.pin::selection{background:var(--sun)}
+
+/* on/off switch (44px touch target) */
+.pswitch{position:relative;flex:0 0 auto;width:76px;min-height:44px;border:0;padding:0;cursor:pointer;background:var(--parchment-shade);font-family:var(--font-pixel);font-size:22px;color:var(--ink);
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.pswitch[aria-checked="true"]{background:var(--leaf)}
+.pswitch .knob{position:absolute;top:6px;left:6px;width:30px;height:32px;background:var(--parchment);box-shadow:0 0 0 2px var(--ink);transition:transform .15s steps(3)}
+.pswitch[aria-checked="true"] .knob{transform:translateX(34px)}
+.pswitch .lbl{position:absolute;top:50%;transform:translateY(-50%);right:10px}
+.pswitch[aria-checked="true"] .lbl{right:auto;left:10px}
+
+/* volume slider */
+.prange{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer}
+.prange::-webkit-slider-runnable-track{height:12px;background:var(--parchment-shade);box-shadow:0 0 0 2px var(--ink)}
+.prange::-moz-range-track{height:12px;background:var(--parchment-shade);box-shadow:0 0 0 2px var(--ink)}
+.prange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:30px;margin-top:-9px;background:var(--canopy);border:0;box-shadow:0 0 0 2px var(--ink)}
+.prange::-moz-range-thumb{width:22px;height:30px;border-radius:0;background:var(--canopy);border:0;box-shadow:0 0 0 2px var(--ink)}
+
+/* sound cue toast: every sound has a visual cue */
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:8px 16px;font-family:var(--font-pixel);font-size:24px;line-height:24px;background:var(--note-yellow);color:var(--ink);pointer-events:none;opacity:0;transition:opacity .15s}
+.toast.show{opacity:1}
+
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+[tabindex="-1"]:focus{outline:none}

@@ -1,0 +1,20 @@
+/* QuinnDom palette v4 (final) + pixel UI kit tokens */
+:root {
+  /* Day */
+  --forest:#1B5E20; --canopy:#237A43; --leaf:#7BC67A; --moss:#4A7C59; --sky:#3A7BD5; --harbour:#1D3557;
+  --sun:#F7C948; --honey:#E9C46A; --brass:#C9A227; --sand:#E9D8A6; --mist:#F3F7EA; --ink:#14261B;
+  --clay:#C8693D; --wisteria:#B392AC; --lilac:#CDB4DB;
+  /* Night */
+  --charcoal:#222831; --slate:#393E46; --biolume:#00ADB5; --fungal:#8EF9F3; --moss-glow:#5CB85C; --moonlight:#EEEEEE;
+  /* Punk accents */
+  --neon-cyan:#00F5FF; --riot-blue:#2541B2; --spray-teal:#00BFA6;
+  /* Rare resources */
+  --mimosa:#D9638F; --psilocybe:#6E54A3; --petal-pink:#FFAFCC;
+  /* Pixel UI kit (from the v2 boards) */
+  --parchment:#FBF7EA; --parchment-shade:#D9CBA0; --note-yellow:#FFF3C4; --sign-wood:#C98A5A; --sign-wood-dark:#A8673F;
+  --body-text:#33463A;
+  /* Type */
+  --font-head:'Space Grotesk',system-ui,sans-serif;
+  --font-body:'Nunito Sans',system-ui,sans-serif;
+  --font-pixel:'VT323',ui-monospace,monospace;
+}
