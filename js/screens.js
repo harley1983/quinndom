@@ -296,7 +296,9 @@ var Screens = (function () {
     Sound.onCue(toast);
     buildWelcome(); buildHome(); buildSettings();
     Passport.build(root, { el: el, show: show, sound: function (n) { Sound.play(n); }, refreshHome: refreshHome,
-      startAmbience: function () { Sound.startAmbience('garden'); }, stopAmbience: function () { Sound.stopAmbience(); } });
+      startAmbience: function () { Sound.startAmbience('garden'); }, stopAmbience: function () { Sound.stopAmbience(); },
+      isSfx: function () { return Save.get().settings.sfx === true; },
+      toggleSfx: function () { var on = Save.get().settings.sfx !== true; Save.update({ settings: { sfx: on } }); applySoundSettings(); return on; } });
     document.addEventListener('click', function (e) {
       var b = e.target.closest('.pbtn, .plink, .stepb');
       if (b && !b.id.match(/^(w-s0|w-s1|sw-sfx)$/) && !b.closest('#s-moments')) Sound.play('tap');

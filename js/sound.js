@@ -15,6 +15,12 @@ var Sound = (function () {
     milestone:{label: 'Milestone',     when: 'Streak 7, 30, 100, 365; gold stamp',          kind: 'chime', notes: [[C, 0, 0.1], [E, 0.12, 0.1], [G, 0.24, 0.1], [C2, 0.36, 0.1], [E2, 0.48, 0.5], [G * 2, 0.62, 0.6]] },
     bossin:  { label: 'Boss appears',  when: 'Entering a night boss fight',                 kind: 'chip',  notes: [[110, 0, 0.5], [146.83, 0.28, 0.6]] },
     bosshit: { label: 'Boss hit',      when: 'Correct move during a boss fight',            kind: 'chip',  notes: [[G, 0, 0.05], [C2, 0.06, 0.08]] },
+    pindrop: { label: 'Pin drop',      when: 'A guess lands on the map',                   kind: 'chime', notes: [[1318.5, 0.1, 0.05], [1975.5, 0.17, 0.08]], fx: 'thunk' },
+    whoosh:  { label: 'Map zoom',      when: 'The map glides to your answer',               kind: 'chime', notes: [], fx: 'whoosh' },
+    hit:     { label: 'Hit',           when: 'Right answer on the map',                     kind: 'chime', notes: [[E, 0, 0.1], [G, 0.1, 0.1], [C2, 0.2, 0.12], [E2, 0.3, 0.35], [G * 2, 0.42, 0.5]] },
+    miss:    { label: 'Miss',          when: 'Wrong answer on the map (soft)',              kind: 'wood',  notes: [[330, 0, 0.12], [247, 0.14, 0.2]] },
+    stampslam:{label: 'Stamp slam',    when: 'A new stamp thumps onto the page',            kind: 'chime', notes: [[D * 2, 0.1, 0.25], [A * 2, 0.2, 0.4]], fx: 'thump' },
+    pageflip:{ label: 'Page flip',     when: 'Panels slide, passport pages turn',           kind: 'chime', notes: [], fx: 'swish' },
     bossend: { label: 'Boss defeated', when: 'Winning a boss fight',                        kind: 'chip',  notes: [[392, 0, 0.1], [C, 0.11, 0.1], [E, 0.22, 0.1], [G, 0.33, 0.1], [C2, 0.44, 0.5]] }
   };
 
@@ -25,7 +31,7 @@ var Sound = (function () {
   };
 
   var cfg = { sfx: false, ambience: false, volume: 0.7 };
-  var ctx = null, master = null;
+  var ctx = null, master = null, echo = null;
   var loop = { key: null, bus: null, nodes: [], timer: null };
   var onCue = null; // visual cue hook: function (label)
 
@@ -37,6 +43,11 @@ var Sound = (function () {
       master = ctx.createGain();
       master.gain.value = cfg.volume;
       master.connect(ctx.destination);
+      // a soft echo that only chimes use, so they ring in a small room
+      echo = ctx.createGain(); echo.gain.value = 0.22;
+      var dl = ctx.createDelay(1), fb = ctx.createGain(), lp = ctx.createBiquadFilter();
+      dl.delayTime.value = 0.17; fb.gain.value = 0.32; lp.type = 'lowpass'; lp.frequency.value = 3200;
+      echo.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
     }
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
     return ctx;
@@ -55,6 +66,7 @@ var Sound = (function () {
       if (kind === 'chip') g.gain.setValueAtTime(p, at + len);
       g.gain.exponentialRampToValueAtTime(0.0001, at + len + tail);
       o.connect(g); g.connect(dest);
+      if (kind === 'chime' && echo && !out) g.connect(echo);
       o.start(at); o.stop(at + len + tail + 0.05);
     }
     if (kind === 'chime') { voice('sine', f, 0.16 * v, d, 1.1); voice('sine', f * 2.76, 0.03 * v, d, 0.5); }
@@ -62,6 +74,39 @@ var Sound = (function () {
     else if (kind === 'wood') { voice('sine', f, 0.12 * v, d, 0.06, f * 0.6); }
     else { voice('square', f, 0.05 * v, d, 0.03); }
   }
+
+  /* Short noise-based effects (no samples). Each takes the audio context and a start time. */
+  var FX = {
+    whoosh: function (c, at) {
+      var n = noiseSource(c), f = c.createBiquadFilter(), g = c.createGain();
+      f.type = 'bandpass'; f.Q.value = 0.9;
+      f.frequency.setValueAtTime(300, at); f.frequency.exponentialRampToValueAtTime(2200, at + 0.28); f.frequency.exponentialRampToValueAtTime(600, at + 0.7);
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.09, at + 0.22); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.75);
+      n.connect(f); f.connect(g); g.connect(master); n.start(at); n.stop(at + 0.8);
+    },
+    swish: function (c, at) {
+      var n = noiseSource(c), f = c.createBiquadFilter(), g = c.createGain();
+      f.type = 'highpass'; f.frequency.setValueAtTime(1200, at); f.frequency.exponentialRampToValueAtTime(4200, at + 0.16);
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.05, at + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
+      n.connect(f); f.connect(g); g.connect(master); n.start(at); n.stop(at + 0.25);
+    },
+    thunk: function (c, at) {                      // a pin pressed into wood
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(240, at); o.frequency.exponentialRampToValueAtTime(95, at + 0.1);
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.28, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
+      o.connect(g); g.connect(master); o.start(at); o.stop(at + 0.2);
+    },
+    thump: function (c, at) {                      // a rubber stamp on paper: low thud plus a puff of paper noise
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, at); o.frequency.exponentialRampToValueAtTime(48, at + 0.14);
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.4, at + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
+      o.connect(g); g.connect(master); o.start(at); o.stop(at + 0.25);
+      var n = noiseSource(c), f = c.createBiquadFilter(), g2 = c.createGain();
+      f.type = 'lowpass'; f.frequency.value = 1400;
+      g2.gain.setValueAtTime(0.0001, at); g2.gain.exponentialRampToValueAtTime(0.12, at + 0.006); g2.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
+      n.connect(f); f.connect(g2); g2.connect(master); n.start(at); n.stop(at + 0.12);
+    }
+  };
 
   function cue(label) { if (onCue) { try { onCue(label); } catch (e) {} } }
 
@@ -73,6 +118,7 @@ var Sound = (function () {
       if (!c) return false;
       var now = c.currentTime + 0.03;
       m.notes.forEach(function (n) { tone(c, now + n[1], n[0], n[2], n[3] || m.kind); });
+      if (m.fx && FX[m.fx]) FX[m.fx](c, now);
       cue(m.label);
       return true;
     } catch (e) { return false; }
