@@ -33,109 +33,77 @@ var Screens = (function () {
     Sound.setConfig({ sfx: s.sfx, ambience: s.ambience, volume: s.volume });
   }
 
-  /* ---------------- Welcome ---------------- */
-  var SKIES = [
-    ['#3B4A8C', '#6A5CA0', '#A56FAA', '#E58BA0', '#F7AE8A', '#FFD08A', '#FFE7B0'],
-    ['#4F9BE3', '#6FB3EA', '#8EC6EE', '#B0D8EE', '#D3E6E2', '#F1EDCF', '#FFF2CF'],
-    ['#0A1330', '#0F1D45', '#17295A', '#213A70', '#2C4A82', '#36588F', '#40669A']
-  ];
-  function grad(st) {
-    var parts = [st[0] + ' 0%', st[0] + ' 10%'];
-    for (var i = 1; i < 7; i++) parts.push(st[i] + ' ' + (10 + i * 11.7).toFixed(1) + '%');
-    parts.push(st[6] + ' 100%');
-    return 'linear-gradient(to bottom, ' + parts.join(', ') + ')';
-  }
+  /* ---------------- Welcome v3: pixel woodland lake ---------------- */
   var CITIES = ['Sunleaf Quarter', 'Mossbridge', 'Bamboo Landing', 'Kite Hill', 'Dawnfield', 'Snail Harbour'];
-  var EGGS = [
-    { id: 'sun', sprite: 'sun', pos: 'right:40px;top:40px', label: 'A floating sun', note: 'Good morning! The real sun is about 150 million km away. Your city only needs a little of it.' },
-    { id: 'moon', sprite: 'moon', pos: 'right:116px;top:40px', label: 'A floating moon', note: 'Shhh. The city is asleep and the solar panels are dreaming of tomorrow. Poke again for morning.' },
-    { id: 'mushroom', sprite: 'mushroom', pos: 'right:34%;bottom:12%', label: 'A floating violet mushroom', note: 'Violet mushrooms are rare. One shows up only when a hero is ready to level up. No pressure, mushroom.' },
-    { id: 'mimosa', sprite: 'mimosa', pos: 'left:calc(50% - 40px);bottom:40px', label: 'A floating pink flower', note: 'Mimosa gives you one extra hint for a day. The real plant folds its leaves when touched, so be gentle.' },
-    { id: 'flame', sprite: 'flame', pos: 'right:30%;top:46%', label: 'A floating flame', note: 'Streak tip: missing one day is fine. A freeze catches you, like a very small trampoline.' }
-  ];
+  var MOON_ICON = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M9 1a6 6 0 1 0 4 9 5 5 0 0 1-4-9z" fill="currentColor"/></svg>';
 
   function buildWelcome() {
     var node = el(
-      '<section class="screen" id="screen-welcome" aria-label="Welcome"><div class="w-stage">' +
-        '<div class="sky" data-sky="0"></div><div class="sky" data-sky="1"></div><div class="sky" data-sky="2"></div>' +
-        '<div class="sign" id="w-sign"><div class="board" id="w-sign-text"></div><div class="legs"><span></span><span></span></div></div>' +
-        '<div id="w-eggs"></div>' +
-        '<div class="pxp secrets"><div class="hd"><span>PSST, SECRETS</span><span id="w-count">0 / 5</span></div><span class="note" id="w-note" aria-live="polite">Five little secrets are hiding on this page. Poke the floating things.</span></div>' +
-        '<div class="w-wrap"><div class="pxp w-card">' +
-          '<div role="group" aria-label="Progress" style="display:flex;gap:12px">' +
-            '<button class="stepb" id="w-s0" aria-label="Hello">1</button><button class="stepb" id="w-s1" aria-label="Name your city">2</button></div>' +
-          '<div class="col" id="w-step0">' +
-            '<div class="brand">' + Art.sprite('brain') + '<h1 data-focus tabindex="-1">QuinnDom</h1></div>' +
-            '<p class="hello">The world is a lot. Here’s a tiny island.</p>' +
-            '<p class="body">Solve a puzzle. Build something lovely. Leave whenever you like. Your city will still be here, quietly photosynthesizing. No account, no ads, no streak-shaming.</p>' +
-            '<div class="row"><button class="pbtn" id="w-go">Let’s go</button><button class="plink" id="w-import">I already have a save file</button></div>' +
-            '<p class="err" id="w-err" role="alert"></p>' +
-            '<div class="row" style="padding:0"><button class="plink" id="w-settings">Sound &amp; settings</button></div>' +
-            '<p class="psst">(psst: the floating things around the page are poke-able)</p>' +
-          '</div>' +
-          '<div class="col tight" id="w-step1" hidden>' +
-            '<h2 tabindex="-1" id="w-h2">Two small questions</h2>' +
-            '<div class="field"><label for="pname">What should citizens call you?</label><input id="pname" class="pin" type="text" maxlength="40" autocomplete="nickname" placeholder="Your name or a nickname"></div>' +
-            '<div class="field"><label for="cname">And your first city?</label><div class="row nowrap"><input id="cname" class="pin" type="text" maxlength="40" value="Sunleaf Quarter"><button class="pbtn light" id="w-shuffle" style="flex:0 0 auto">Surprise me</button></div></div>' +
-            '<p class="err" id="w-err2" role="alert"></p>' +
-            '<p class="small">Three citizens are already waiting at the camp. They brought snacks. Your city lives in this browser like a snail in its shell, so export a save file now and then.</p>' +
-            '<div class="row"><button class="pbtn" id="w-plant">Plant the first tower</button><button class="plink" id="w-back">Back</button></div>' +
-          '</div>' +
-        '</div></div>' +
+      '<section class="screen" id="screen-welcome" aria-label="Welcome"><div class="w3" data-sky="dawn" data-step="0">' +
+        '<div class="w3-st" aria-hidden="true">' +
+          '<div class="w3-l dawn"></div><div class="w3-l day"></div><div class="w3-l night"></div>' +
+          '<div class="w3-l fr"></div><div class="w3-l frn"></div><div class="w3-l fa"></div><div class="w3-l fb"></div>' +
+          '<div class="w3-sign" id="w-sign"></div>' +
+        '</div>' +
+        '<button class="w3-chip w3-moon" id="w-night" aria-pressed="false">' + MOON_ICON + '<span id="w-night-t">Night sky</span></button>' +
+        '<div class="w3-c" id="w-step0">' +
+          '<div class="w3-brand">' + Art.sprite('brain') + '<h1 data-focus tabindex="-1">QuinnDom</h1></div>' +
+          '<p class="w3-tag">Make yourself at quest.</p>' +
+          '<p class="w3-hello">The world is a lot. Here’s a tiny island.</p>' +
+          '<p class="w3-body">Solve a puzzle. Build something lovely. Leave whenever you like. Your city will still be here, quietly photosynthesizing. No account, no ads, no streak-shaming.</p>' +
+          '<button class="w3-go" id="w-go">Start Game</button>' +
+          '<button class="w3-link" id="w-import">I already have a save file</button>' +
+          '<p class="w3-err" id="w-err" role="alert"></p>' +
+          '<button class="w3-chip" id="w-settings">Settings</button>' +
+        '</div>' +
+        '<div class="w3-c" id="w-step1" hidden>' +
+          '<div class="w3-mini">' + Art.sprite('brain') + '<span>QuinnDom</span></div>' +
+          '<h2 tabindex="-1" id="w-h2">Two small questions</h2>' +
+          '<p class="w3-body">Three citizens are already waiting at the camp. They brought snacks. Your city lives in this browser like a snail in its shell, so export a save file now and then.</p>' +
+          '<p class="w3-tag s">Fill in the boards on the shore.</p>' +
+          '<p class="w3-err" id="w-err2" role="alert"></p>' +
+          '<button class="w3-go" id="w-plant">Plant the first tower</button>' +
+          '<button class="w3-link" id="w-back">Back</button>' +
+        '</div>' +
+        '<div class="w3-box a" id="w-boxa" hidden><label for="pname">What should citizens call you?</label>' +
+          '<input id="pname" class="pin" type="text" maxlength="40" autocomplete="nickname" placeholder="Your name or a nickname">' +
+          '<span class="tip">It will be painted on the sign by the lake.</span><div class="posts"><span></span><span></span></div></div>' +
+        '<div class="w3-box b" id="w-boxb" hidden><label for="cname">And your first city?</label>' +
+          '<input id="cname" class="pin" type="text" maxlength="40" value="Sunleaf Quarter">' +
+          '<button class="w3-sm" id="w-shuffle">Surprise me</button><div class="posts"><span></span><span></span></div></div>' +
         '<input type="file" id="w-file" accept=".json,application/json" hidden>' +
       '</div></section>');
     root.appendChild(node);
 
-    var state = { step: 0, night: false, found: [], cityIdx: 0 };
-    var skies = node.querySelectorAll('.sky');
-    skies[0].style.background = grad(SKIES[0]); skies[0].innerHTML = Art.island('dawn');
-    skies[1].style.background = grad(SKIES[1]); skies[1].innerHTML = Art.island('day');
-    skies[2].style.background = grad(SKIES[2]); skies[2].innerHTML = Art.island('night');
+    var w3 = $('.w3', node);
+    var state = { step: 0, night: false, cityIdx: 0 };
 
     function paint() {
-      var layer = state.night ? 2 : state.step;
-      for (var i = 0; i < 3; i++) skies[i].classList.toggle('on', i === layer);
+      w3.setAttribute('data-sky', state.night ? 'night' : (state.step === 0 ? 'dawn' : 'day'));
+      w3.setAttribute('data-step', String(state.step));
       $('#w-step0', node).hidden = state.step !== 0;
       $('#w-step1', node).hidden = state.step !== 1;
-      $('#w-sign', node).classList.toggle('on', state.step === 1);
-      var s0 = $('#w-s0', node), s1 = $('#w-s1', node);
-      s0.style.background = state.step > 0 ? 'var(--canopy)' : 'var(--sun)';
-      s1.style.background = state.step === 1 ? 'var(--sun)' : 'var(--parchment)';
-      s0.setAttribute('aria-current', state.step === 0 ? 'step' : 'false');
-      s1.setAttribute('aria-current', state.step === 1 ? 'step' : 'false');
-      s0.style.color = state.step > 0 ? 'var(--mist)' : 'var(--ink)';
+      $('#w-boxa', node).hidden = state.step !== 1;
+      $('#w-boxb', node).hidden = state.step !== 1;
+      $('#w-night', node).setAttribute('aria-pressed', state.night ? 'true' : 'false');
+      $('#w-night-t', node).textContent = state.night ? 'Back to day' : 'Night sky';
     }
     function setStep(n) {
       state.step = n; paint();
       var f = n === 0 ? $('#w-step0 h1', node) : $('#pname', node);
       if (f) f.focus({ preventScroll: true });
     }
-    function syncSign() { $('#w-sign-text', node).textContent = $('#cname', node).value || 'Your city'; }
+    function syncSign() {
+      var nm = $('#pname', node).value.trim() || 'You';
+      var ct = $('#cname', node).value.trim().replace(/ Quarter$/, '') || 'Your city';
+      $('#w-sign', node).textContent = nm + ' · ' + ct;
+    }
 
-    // secrets
-    var eggBox = $('#w-eggs', node);
-    EGGS.forEach(function (e) {
-      var b = document.createElement('button');
-      b.className = 'egg'; b.style.cssText = e.pos; b.setAttribute('aria-label', e.label);
-      b.innerHTML = Art.sprite(e.sprite);
-      b.addEventListener('click', function () {
-        var isNew = state.found.indexOf(e.id) < 0;
-        if (isNew) state.found.push(e.id);
-        b.classList.add('found'); b.setAttribute('aria-label', e.label + ', found');
-        state.night = e.id === 'moon' ? !state.night : false;
-        $('#w-note', node).textContent = (isNew && state.found.length === 5) ? 'All 5 found. You are officially a snoop of the highest rank. Welcome to QuinnDom!' : e.note;
-        $('#w-count', node).textContent = state.found.length + ' / 5';
-        paint();
-        if (isNew) { if (state.found.length === 5) Sound.play('milestone'); else Sound.play('collect'); }
-      });
-      eggBox.appendChild(b);
-    });
-
-    $('#w-go', node).addEventListener('click', function () { setStep(1); });
-    $('#w-s0', node).addEventListener('click', function () { Sound.play('tap'); setStep(0); });
-    $('#w-s1', node).addEventListener('click', function () { Sound.play('tap'); setStep(1); });
+    $('#w-go', node).addEventListener('click', function () { Sound.play('tap'); setStep(1); });
     $('#w-back', node).addEventListener('click', function () { setStep(0); });
+    $('#w-night', node).addEventListener('click', function () { state.night = !state.night; Sound.play('tap'); paint(); });
     $('#w-settings', node).addEventListener('click', function () { show('settings'); });
+    $('#pname', node).addEventListener('input', function () { $('#w-err2', node).textContent = ''; syncSign(); });
     $('#cname', node).addEventListener('input', syncSign);
     $('#w-shuffle', node).addEventListener('click', function () {
       state.cityIdx = (state.cityIdx + 1) % CITIES.length;
@@ -152,7 +120,6 @@ var Screens = (function () {
       Screens.refreshHome();
       show('home');
     });
-    $('#pname', node).addEventListener('input', function () { $('#w-err2', node).textContent = ''; });
 
     // import a save file
     var file = $('#w-file', node);
@@ -174,6 +141,7 @@ var Screens = (function () {
     syncSign(); paint();
     node.__reset = function () { state.step = 0; state.night = false; paint(); };
   }
+
 
   /* ---------------- Home (placeholder) ---------------- */
   function buildHome() {
