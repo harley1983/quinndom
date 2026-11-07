@@ -219,3 +219,6 @@
 .streak .fzs{display:flex;gap:4px}.streak .fz{display:inline-flex;opacity:.28;filter:grayscale(1)}.streak .fz.on{opacity:1;filter:none}.streak .fz .resi{width:24px;height:24px;display:block}
 .ms{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#FFE6A8;box-shadow:0 0 0 2px var(--ink);animation:fadeUp .5s var(--ease) both}.ms b{font:20px/20px var(--font-pixel);letter-spacing:2px;color:#6B4B00}
 .mfz{display:flex;align-items:center;gap:8px;font:700 15px/20px var(--font-head)}.mfz .resi{width:26px;height:26px;display:block}
+
+.sharebtn{margin-top:14px;width:100%;padding:14px 10px;border:0;cursor:pointer;background:#FFE14D;color:#111;font:400 26px/24px var(--font-pixel);letter-spacing:2px;box-shadow:0 0 0 4px #111,6px 6px 0 4px #111;transition:transform .15s var(--ease)}
+.sharebtn:hover{transform:translate(-2px,-2px)}.sharebtn:active{transform:translate(3px,3px);box-shadow:0 0 0 4px #111,2px 2px 0 4px #111}.sharebtn:disabled{opacity:.6;cursor:wait}
