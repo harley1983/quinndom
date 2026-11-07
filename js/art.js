@@ -16,10 +16,13 @@ var Art = (function () {
     return '<svg class="px ' + (cls || '') + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" shape-rendering="crispEdges">' + out + '</svg>';
   }
 
+  var CAT_PAL = {o: '#2A1F18', w: '#FFF8EE', g: '#F0A04B', k: '#3A3A44', p: '#F4A9B8', e: '#2A1F18'};
+  var BLACKCAT_PAL = {o: '#14101A', w: '#3B3B48', g: '#55556A', k: '#2B2B36', p: '#F4A9B8', e: '#FFE14D'};
   var BRAIN_PAL = {'o': '#4A1A24', 'p': '#EFA3AC', 'h': '#F9C9CE', 'd': '#D9798A', 'f': '#C4647A', 'k': '#8E3550', 'v': '#D32F2F', 'b': '#D9798A', 's': '#E08C9A', 'g': '#7BC67A', 'n': '#237A43'};
 
   var SPRITES = {
     // the logo: a pink brain (folds, cerebellum, brainstem, red blood vessels) with a sprout growing out of it
+    cat: ['..oo........oo..', '.ogpo......oppo.', '.ogggoooooogggo.', '.ogkkkwwwgggggo.', 'ogkkkwwwwggggggo', 'owwwwwwwwwgggwwo', 'owweewwwwwweewwo', 'owweewwwwwweewwo', 'owpwwwwppwwwwpwo', 'owwwwwwoowwwwwwo', 'owwwwwwwwwwwwwwo', '.oowwwwwwwwwwoo.', '..oooooooooooo..'],
     brain: [
       '........................................',
       '...............gg.......................',
@@ -124,5 +127,6 @@ var Art = (function () {
     var s = sprite(d.rows, 'resi ' + (cls || ''), d.pal);
     return s.replace('aria-hidden="true"', 'role="img" aria-label="' + k + '"');
   }
-  return { res: resIcon, sprite: function (name, cls) { return sprite(SPRITES[name], cls, name === 'brain' ? BRAIN_PAL : null); }, island: island };
+  SPRITES.blackcat = SPRITES.cat;
+  return { res: resIcon, sprite: function (name, cls) { return sprite(SPRITES[name], cls, name === 'brain' ? BRAIN_PAL : name === 'cat' ? CAT_PAL : name === 'blackcat' ? BLACKCAT_PAL : null); }, island: island };
 })();

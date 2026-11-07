@@ -206,10 +206,16 @@ var Screens = (function () {
   function paintBackup() {
     var box = $('#h-backup'); if (!box) return;
     var b = Save.backupDue(); box.hidden = !b.due; if (!b.due) return;
-    box.innerHTML = '<div class="bk-tx"><b>Time to back up your game</b><small>' + (b.never ? 'You have not exported a save yet.' : 'Your last export was ' + b.days + ' days ago.') + ' Your stamps and streak live only in this browser.</small></div>' +
-      '<div class="bk-bt"><button class="pbtn" id="bk-now">Export now</button><button class="pbtn light" id="bk-later">Remind me later</button></div>';
-    $('#bk-now').addEventListener('click', function () { Save.download(); Sound.play('collect'); box.innerHTML = '<div class="bk-tx"><b>Backup saved</b><small>Keep the file somewhere safe, like Drive or email. I will remind you again in a week.</small></div>'; setTimeout(function () { box.hidden = true; }, 4000); });
-    $('#bk-later').addEventListener('click', function () { Save.snoozeBackup(); box.hidden = true; });
+    var when = b.never ? 'No backup yet' : 'Last backup: ' + b.days + ' days ago';
+    box.innerHTML = '<span class="bk-peek" aria-hidden="true">' + Art.sprite('blackcat') + '</span>' +
+      '<div class="bk-top"><span class="bk-stripe"></span><button class="bk-x" id="bk-x" aria-label="Remind me later">\u00D7</button></div>' +
+      '<div class="bk-body"><span class="bk-pic" aria-hidden="true">' + Art.sprite('cat') + '</span><div class="bk-tx"><span class="bk-tag">SYSTEM_NOTICE</span><b>Meow! Time to back up your game</b>' +
+      '<p>Your stamps and streak live only in this browser, like a cat in a cardboard box. Clear the browser or change phone and the box is gone.</p>' +
+      '<p><b>Export</b> saves a file you can keep in Drive or email. <b>Import</b> (in Settings) puts everything back.</p><small>' + when + '</small></div></div>' +
+      '<div class="bk-bt"><button class="bkb go" id="bk-now">EXPORT NOW</button><button class="bkb" id="bk-later">LATER</button></div>';
+    function later() { Save.snoozeBackup(); box.hidden = true; }
+    $('#bk-now').addEventListener('click', function () { Save.download(); Sound.play('collect'); box.innerHTML = '<div class="bk-body"><span class="bk-pic" aria-hidden="true">' + Art.sprite('cat') + '</span><div class="bk-tx"><span class="bk-tag">SYSTEM_NOTICE</span><b>Purrfect, backup saved!</b><p>Keep the file somewhere safe. I will remind you again in a week.</p></div></div>'; setTimeout(function () { box.hidden = true; }, 5000); });
+    $('#bk-later').addEventListener('click', later); $('#bk-x').addEventListener('click', later);
   }
   /* streak banner and the Today task list (PRD FR-1.5) */
   function paintToday() {
