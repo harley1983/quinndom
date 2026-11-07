@@ -1714,5 +1714,123 @@ var Prompts = [
    "SO",
    "SS"
   ]
+ },
+ {
+  "id": "pp61",
+  "text": "Has a face on the sun of its flag",
+  "family": "Culture and myth",
+  "level": "Hard",
+  "rule": "The \"Sun of May\" with a human face, a symbol linked to Inti, the Inca sun god. Kept narrow on purpose.",
+  "source": "https://en.wikipedia.org/wiki/Sun_of_May",
+  "sourceChecked": false,
+  "answers": [
+   "AR",
+   "UY"
+  ]
+ },
+ {
+  "id": "pp64",
+  "text": "Has ancient pyramids",
+  "family": "Culture and myth",
+  "level": "Medium",
+  "rule": "Pyramids built by an ancient civilisation that still stand. Sudan has more than Egypt.",
+  "source": "https://en.wikipedia.org/wiki/List_of_pyramids",
+  "sourceChecked": false,
+  "answers": [
+   "BZ",
+   "EG",
+   "GT",
+   "HN",
+   "MX",
+   "PE",
+   "SD",
+   "SV"
+  ]
+ },
+ {
+  "id": "pp65",
+  "text": "Has a Buddhist majority",
+  "family": "Culture and myth",
+  "level": "Easy",
+  "rule": "Buddhism is the religion of more than half of the people (Mongolia is the narrowest).",
+  "source": "https://en.wikipedia.org/wiki/Buddhism_by_country",
+  "sourceChecked": false,
+  "answers": [
+   "BT",
+   "KH",
+   "LA",
+   "LK",
+   "MM",
+   "MN",
+   "TH"
+  ]
+ },
+ {
+  "id": "pp68",
+  "text": "Officially counts years differently from the Gregorian calendar",
+  "family": "Culture and myth",
+  "level": "Medium",
+  "rule": "Ethiopia (Ethiopian calendar), Nepal (Bikram Sambat), Iran and Afghanistan (Solar Hijri), Thailand (Buddhist Era).",
+  "source": "https://en.wikipedia.org/wiki/List_of_calendars",
+  "sourceChecked": false,
+  "answers": [
+   "AF",
+   "ET",
+   "IR",
+   "NP",
+   "TH"
+  ]
+ },
+ {
+  "id": "pp69",
+  "text": "Has a time zone that is not a whole hour from UTC",
+  "family": "Culture and myth",
+  "level": "Hard",
+  "rule": "Any part of the country counts (Newfoundland in Canada, Adelaide in Australia, the Chatham Islands in New Zealand).",
+  "source": "https://en.wikipedia.org/wiki/List_of_UTC_offsets",
+  "sourceChecked": false,
+  "answers": [
+   "AF",
+   "AU",
+   "CA",
+   "IN",
+   "IR",
+   "LK",
+   "MM",
+   "NP",
+   "NZ"
+  ]
+ },
+ {
+  "id": "pp71",
+  "text": "Has a weapon on its flag",
+  "family": "Culture and myth",
+  "level": "Hard",
+  "rule": "A sword, rifle, machete, dagger or spears shown on the national flag itself.",
+  "source": "https://en.wikipedia.org/wiki/List_of_national_flags_of_sovereign_states",
+  "sourceChecked": false,
+  "answers": [
+   "AO",
+   "KE",
+   "LK",
+   "MZ",
+   "OM",
+   "SA",
+   "SZ"
+  ]
+ },
+ {
+  "id": "pp73",
+  "text": "Has a founding legend that involves a wolf",
+  "family": "Culture and myth",
+  "level": "Hard",
+  "rule": "Romulus and Remus (Italy), the grey wolf Asena (Turkey), the blue-grey wolf of the Mongols.",
+  "source": "https://en.wikipedia.org/wiki/Wolf_in_mythology",
+  "sourceChecked": false,
+  "answers": [
+   "IT",
+   "MN",
+   "TR"
+  ]
  }
 ];

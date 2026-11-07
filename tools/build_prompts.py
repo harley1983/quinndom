@@ -123,6 +123,21 @@ P = [
  (58, 'Has a capital that starts with B', 'Wordplay', 'Medium', 'Uses the capital as the game writes it.', '', True, cap_b),
  (60, 'Has another country\'s name hidden inside its name', 'Wordplay', 'Hard', 'Another game country\'s full name sits inside it (Niger in Nigeria, Mali in Somalia).', '', True, hidden_country),
 
+ # ---- batch 3 (culture and myth), approved by Harley in review round 4, 7 Nov 2026
+ (61, 'Has a face on the sun of its flag', 'Culture and myth', 'Hard', 'The "Sun of May" with a human face, a symbol linked to Inti, the Inca sun god. Kept narrow on purpose.', W+'Sun_of_May', False,
+  'AR UY'),
+ (64, 'Has ancient pyramids', 'Culture and myth', 'Medium', 'Pyramids built by an ancient civilisation that still stand. Sudan has more than Egypt.', W+'List_of_pyramids', False,
+  'EG SD MX GT BZ HN SV PE'),
+ (65, 'Has a Buddhist majority', 'Culture and myth', 'Easy', 'Buddhism is the religion of more than half of the people (Mongolia is the narrowest).', W+'Buddhism_by_country', False,
+  'TH KH MM LK BT LA MN'),
+ (68, 'Officially counts years differently from the Gregorian calendar', 'Culture and myth', 'Medium', 'Ethiopia (Ethiopian calendar), Nepal (Bikram Sambat), Iran and Afghanistan (Solar Hijri), Thailand (Buddhist Era).', W+'List_of_calendars', False,
+  'ET NP IR AF TH'),
+ (69, 'Has a time zone that is not a whole hour from UTC', 'Culture and myth', 'Hard', 'Any part of the country counts (Newfoundland in Canada, Adelaide in Australia, the Chatham Islands in New Zealand).', W+'List_of_UTC_offsets', False,
+  'IN LK NP AF IR MM AU CA NZ'),
+ (71, 'Has a weapon on its flag', 'Culture and myth', 'Hard', 'A sword, rifle, machete, dagger or spears shown on the national flag itself.', W+'List_of_national_flags_of_sovereign_states', False,
+  'SA MZ AO OM KE SZ LK'),
+ (73, 'Has a founding legend that involves a wolf', 'Culture and myth', 'Hard', 'Romulus and Remus (Italy), the grey wolf Asena (Turkey), the blue-grey wolf of the Mongols.', W+'Wolf_in_mythology', False,
+  'IT TR MN'),
 ]
 out, errors = [], []
 for (n, text, fam, lvl, rule, srcu, checked, ans) in P:
