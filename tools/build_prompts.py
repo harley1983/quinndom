@@ -1,4 +1,4 @@
-# Builds js/prompts.js: the 30 approved passport prompts and their valid answers (ISO codes).
+# Builds js/prompts.js: the passport prompts (30 approved + 30 new) and their valid answers (ISO codes).
 # Run: python3 tools/build_prompts.py   (checks every code exists in js/countries.js)
 import json, re, unicodedata
 src = open('js/countries.js', encoding='utf8').read()
@@ -11,6 +11,24 @@ def same_letter():
     for c, n in rows:
         s = ''.join(ch for ch in unicodedata.normalize('NFD', n.lower()) if 'a' <= ch <= 'z')
         if s and s[0] == s[-1]: out.append(c)
+    return out
+
+
+def letters(t): return ''.join(ch for ch in unicodedata.normalize('NFD', t.lower()) if 'a' <= ch <= 'z')
+def pick(f): return [c for c, n in rows if f(n)]
+CAPS = {c: cap for c, n, cap in re.findall(r'\["([A-Z]{2})", "([^"]+)", "([^"]+)"', src)}
+def vowel_start(): return pick(lambda n: letters(n)[0] in 'aeiou')
+def short_name(): return pick(lambda n: len(letters(n)) <= 4)
+def has_z(): return pick(lambda n: 'z' in letters(n))
+def cap_same(): return [c for c, n in rows if letters(CAPS[c]) == letters(n)]
+def double_letter(): return pick(lambda n: any(re.search(r'(.)\1', letters(w)) for w in re.split(r'[ -]', n)))
+def cap_b(): return [c for c, n in rows if letters(CAPS[c]).startswith('b')]
+def multi_word(): return pick(lambda n: ' ' in n.strip())
+def hidden_country():
+    out = []
+    for c, n in rows:
+        for c2, m in rows:
+            if c != c2 and len(m) >= 4 and letters(m) in letters(n) and letters(m) != letters(n): out.append(c); break
     return out
 
 # id, text, family, level, rule, source, checked (page opened by Claude), answers
@@ -68,10 +86,57 @@ P = [
  (29, 'Shares a time zone with Vietnam (UTC+7)', 'Location', 'Hard', 'The capital\'s standard time is UTC+7. Vietnam itself does not count.', W+'UTC%2B07:00', True, 'TH LA KH ID'),
  (30, 'Moved its capital to a new city after 1950', 'History', 'Hard', 'The move is official. Botswana and Mauritania count (their colonial capitals were outside the country); Equatorial Guinea counts (Ciudad de la Paz, Jan 2026). Indonesia and Egypt do not yet.', W+'List_of_purpose-built_national_capitals', True,
   'BR PK MW TZ CI NG BZ KZ MM PW LK BI FM DE BW MR GQ'),
+ # ---- batch 2 (31-60), drafted 7 Nov 2026. Computed lists come from js/countries.js, so they are checked by construction.
+ (31, 'Has over 60 million people', 'People', 'Medium', 'Latest UN population estimate (2024). Italy (about 59 million) just misses.', 'https://population.un.org/wpp/', False,
+  'IN CN US ID PK NG BR BD RU ET MX JP EG PH CD VN IR TR DE TH GB TZ FR ZA'),
+ (32, 'Has under 100,000 people', 'People', 'Hard', 'Latest UN population estimate (2024). Seychelles, Tonga and Saint Vincent are just above the line.', 'https://population.un.org/wpp/', False,
+  'LI SM MC PW NR TV VA DM KN MH AD AG'),
+ (33, 'Is smaller than 1,000 km²', 'Size and shape', 'Medium', 'Total area including inland water.', W+'List_of_countries_and_dependencies_by_area', False,
+  'VA MC NR TV SM LI MH KN MV MT GD VC BB AG SC PW AD LC FM SG TO DM BH KI ST'),
+ (34, 'Is in Asia and landlocked', 'Size and shape', 'Medium', 'No coastline on an ocean or sea; the Caspian counts as a lake. Azerbaijan and Kazakhstan count.', W+'Landlocked_country', True,
+  'AF AM AZ BT KZ KG LA MN NP TJ TM UZ'),
+ (35, 'Is in Europe and landlocked', 'Size and shape', 'Medium', 'No coastline on an ocean or sea. Bosnia and Herzegovina does not count (it has a short Adriatic coast at Neum).', W+'Landlocked_country', True,
+  'AD AT BY CZ HU LI LU MD MK SM RS SK CH VA'),
+ (36, 'Is doubly landlocked', 'Size and shape', 'Hard', 'Landlocked, and every neighbour is landlocked too. Kept narrow on purpose: only two countries qualify.', W+'Doubly_landlocked_country', False, 'LI UZ'),
+ (37, 'Is in Oceania', 'Location', 'Easy', 'Australia, New Zealand, Papua New Guinea and the Pacific island nations.', W+'Oceania', False,
+  'AU FJ KI MH FM NR NZ PW PG WS SB TO TV VU'),
+ (38, 'Is in South America', 'Location', 'Easy', 'The 12 independent countries; French Guiana is not a country.', W+'South_America', False,
+  'AR BO BR CL CO EC GY PY PE SR UY VE'),
+ (39, 'Is in the Caribbean', 'Location', 'Medium', 'Island countries in the Caribbean Sea and the nearby Atlantic. Belize, Guyana and Suriname are on the mainland and do not count.', W+'Caribbean', False,
+  'AG BS BB CU DM DO GD HT JM KN LC VC TT'),
+ (40, 'Is in Central America', 'Location', 'Easy', 'The seven countries on the land bridge between Mexico and Colombia.', W+'Central_America', False, 'BZ CR SV GT HN NI PA'),
+ (41, 'Has a coast on the Mediterranean Sea', 'Location', 'Hard', 'Bosnia and Herzegovina counts (Neum). Israel is not in the game.', W+'Mediterranean_Sea', False,
+  'ES FR MC IT MT SI HR BA ME AL GR TR CY SY LB PS EG LY TN DZ MA'),
+ (42, 'Borders China', 'Neighbours', 'Medium', 'Land borders only.', W+'Borders_of_China', False, 'AF BT IN KZ KG LA MN MM NP KP PK RU TJ VN'),
+ (43, 'Borders Russia', 'Neighbours', 'Medium', 'Land borders only; Lithuania and Poland count through Kaliningrad.', W+'Borders_of_Russia', False,
+  'NO FI EE LV LT PL BY UA GE AZ KZ CN MN KP'),
+ (44, 'Borders Brazil', 'Neighbours', 'Medium', 'Land borders only; France counts through French Guiana.', W+'Borders_of_Brazil', False,
+  'AR BO CO FR GY PY PE SR UY VE'),
+ (45, 'Has a Nordic cross on its flag', 'Symbols', 'Medium', 'An off-centre cross on a plain field: the five Nordic countries.', W+'Nordic_cross_flag', False, 'DK FI IS NO SE'),
+ (46, 'Has an eagle on its flag', 'Symbols', 'Hard', 'National flag only; double-headed eagles count. Condors do not.', W+'List_of_national_flags_of_sovereign_states', False,
+  'AL EG KZ MD ME MX RS ZM'),
+ (47, 'Has the Union Jack on its flag', 'Symbols', 'Medium', 'The United Kingdom itself is not counted; the answer is flags that carry it in the corner.', W+'Flags_with_the_Union_Jack', False, 'AU NZ FJ TV'),
+ (48, 'Was once part of Yugoslavia', 'History', 'Medium', 'The six republics. Kosovo is not in the game.', W+'Yugoslavia', False, 'SI HR BA RS ME MK'),
+ (49, 'Was a Portuguese colony', 'History', 'Medium', 'Ruled by Portugal until independence.', W+'Portuguese_Empire', False, 'AO MZ CV GW ST TL BR'),
+ (50, 'Was a Spanish colony', 'History', 'Medium', 'Ruled by Spain until independence (1898 for Cuba and the Philippines). Short or early Spanish rule that ended long before (Jamaica, Trinidad) does not count.', W+'Spanish_Empire', False,
+  'MX GT HN SV NI CR PA CU DO CO VE EC PE BO CL AR UY PY PH GQ'),
+ (51, 'Has hosted the Winter Olympics', 'History', 'Medium', 'Games held up to 2026. Bosnia and Herzegovina counts for Sarajevo 1984 (then Yugoslavia).', W+'List_of_Olympic_Games_host_cities', False,
+  'AT BA CA CN FR DE IT JP KR NO RU CH US'),
+ (52, 'Has hosted the men\'s football World Cup', 'History', 'Medium', 'Tournaments up to 2026. England counts as the United Kingdom; Japan, South Korea and the 2026 co-hosts count.', W+'List_of_FIFA_World_Cup_hosts', False,
+  'UY IT FR BR CH SE CL GB MX DE AR ES US JP KR ZA RU QA CA'),
+ (53, 'Has a name that starts with a vowel', 'Wordplay', 'Easy', 'A, E, I, O or U, using the country name as the game writes it.', '', True, vowel_start),
+ (54, 'Has a name with 4 letters or fewer', 'Wordplay', 'Medium', 'Counts letters only, using the country name as the game writes it.', '', True, short_name),
+ (55, 'Has a Z in its name', 'Wordplay', 'Medium', 'Uses the country name as the game writes it; names of more than one word count.', '', True, has_z),
+ (56, 'Has a capital with the same name as the country', 'Wordplay', 'Hard', 'Uses the capital as the game writes it. Kept narrow on purpose.', '', True, cap_same),
+ (57, 'Has a double letter in its name', 'Wordplay', 'Medium', 'Two of the same letter side by side inside one word (the Marshall Islands, Greece).', '', True, double_letter),
+ (58, 'Has a capital that starts with B', 'Wordplay', 'Medium', 'Uses the capital as the game writes it.', '', True, cap_b),
+ (59, 'Has a name with more than one word', 'Wordplay', 'Easy', 'Hyphenated names (Guinea-Bissau, Timor-Leste) count as one word.', '', True, multi_word),
+ (60, 'Has another country\'s name hidden inside its name', 'Wordplay', 'Hard', 'Another game country\'s full name sits inside it (Niger in Nigeria, Mali in Somalia).', '', True, hidden_country),
+
 ]
 out, errors = [], []
 for (n, text, fam, lvl, rule, srcu, checked, ans) in P:
-    codes = same_letter() if ans is None else ans.split()
+    codes = ans() if callable(ans) else (same_letter() if ans is None else ans.split())
     bad = [c for c in codes if c not in CODES]
     dup = sorted({c for c in codes if codes.count(c) > 1})
     if bad or dup: errors.append((n, bad, dup))
