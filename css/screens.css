@@ -103,3 +103,8 @@
 @keyframes ciIn{from{opacity:0}to{opacity:1}}@keyframes ciOut{to{opacity:0}}
 @keyframes ciPop{0%{opacity:0;transform:translateY(24px) scale(.94)}100%{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.ci-back,.ci-card{animation:none}}
+
+.h-backup{padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:#FFF3C4}
+.h-backup[hidden]{display:none}
+.h-backup .bk-tx{flex:1 1 220px;display:flex;flex-direction:column;gap:2px}.h-backup b{font:700 18px/22px var(--font-head)}.h-backup small{font-size:14px;line-height:19px;color:var(--body-text)}
+.h-backup .bk-bt{display:flex;gap:8px;flex-wrap:wrap}

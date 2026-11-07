@@ -13,6 +13,7 @@ var Save = (function () {
       settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
       resources: { wood: 0, stone: 0, metal: 0, food: 0 },
       daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
+      backup: { lastExport: null, snoozedOn: null },
       passport: { stamps: [], days: {} }   // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
     };
   }
@@ -41,6 +42,9 @@ var Save = (function () {
     d.daily.syncedDay = key.test(dl.syncedDay) ? dl.syncedDay : null;
     if (dl.notice && (dl.notice.type === 'freeze' || dl.notice.type === 'reset')) d.daily.notice = { type: dl.notice.type, n: whole(dl.notice.n) };
     if (Array.isArray(dl.milestones)) d.daily.milestones = dl.milestones.filter(function (m) { return m && [7, 30, 100, 365].indexOf(m.days) >= 0 && key.test(m.date); }).map(function (m) { return { days: m.days, date: m.date }; });
+    var bk = raw.backup || {};
+    d.backup.lastExport = key.test(bk.lastExport) ? bk.lastExport : null;
+    d.backup.snoozedOn = key.test(bk.snoozedOn) ? bk.snoozedOn : null;
     var pp = raw.passport || {};
     if (Array.isArray(pp.stamps)) d.passport.stamps = pp.stamps.filter(function (st) {
       return st && typeof st.code === 'string' && /^[A-Z]{2}$/.test(st.code) && typeof st.date === 'string';
@@ -83,6 +87,7 @@ var Save = (function () {
       settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings,
       resources: patch.resources || cur.resources,
       daily: patch.daily || cur.daily,
+      backup: patch.backup ? Object.assign({}, cur.backup, patch.backup) : cur.backup,
       passport: patch.passport || cur.passport
     });
     write(next);
@@ -102,7 +107,21 @@ var Save = (function () {
     return { ok: true };
   }
 
+  /* weekly export reminder (PRD FR-3.5): due when the last export (or, if never exported, the first day) is 7 or more days ago,
+     the player has something to lose, and the reminder was not put off in the last 2 days */
+  var BACKUP_EVERY = 7, SNOOZE_DAYS = 2;
+  function backupDue() {
+    var s = get(), today = Clock.dayKey();
+    if (!hasCity() || !(s.passport.stamps.length || s.daily.streak)) return { due: false };
+    var base = s.backup.lastExport || (s.createdAt ? s.createdAt.slice(0, 10) : today);
+    var days = Clock.daysBetween(base, today);
+    var snoozed = s.backup.snoozedOn && Clock.daysBetween(s.backup.snoozedOn, today) < SNOOZE_DAYS;
+    return { due: days >= BACKUP_EVERY && !snoozed, days: days, never: !s.backup.lastExport };
+  }
+  function snoozeBackup() { update({ backup: { snoozedOn: Clock.dayKey() } }); }
+
   function download() {
+    update({ backup: { lastExport: Clock.dayKey(), snoozedOn: null } });
     var d = new Date();
     var stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     var blob = new Blob([exportText()], { type: 'application/json' });
@@ -114,5 +133,5 @@ var Save = (function () {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
-  return { load: load, get: get, update: update, hasCity: hasCity, importText: importText, download: download, exportText: exportText };
+  return { load: load, get: get, update: update, hasCity: hasCity, importText: importText, download: download, backupDue: backupDue, snoozeBackup: snoozeBackup, exportText: exportText };
 })();

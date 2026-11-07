@@ -185,6 +185,7 @@ var Screens = (function () {
           '<h1 data-focus tabindex="-1" id="h-title"></h1>' +
           '<div class="h-streak" id="h-streak"></div>' +
           '<div class="pxp h-today"><h2>Today</h2><ol class="h-tasks" id="h-tasks"></ol></div>' +
+          '<div class="pxp h-backup" id="h-backup" hidden></div>' +
           '<p class="h-note">Your save lives in this browser. Export a copy from Settings now and then.</p>' +
         '</div>' +
       '</div></section>');
@@ -199,7 +200,16 @@ var Screens = (function () {
     $('#h-city').textContent = s.cityName;
     var ps = $('#h-pass-s'); if (ps) { var sm = Passport.summary(); ps.textContent = sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps'; var pg = $('#h-pass-go'); if (pg) pg.textContent = sm.done ? 'View passport' : 'Open passport'; }
     $('#h-title').textContent = 'Welcome, ' + (s.playerName || 'traveller') + '.';
-    paintToday();
+    paintToday(); paintBackup();
+  }
+  /* weekly export reminder: a small card, never a blocking popup */
+  function paintBackup() {
+    var box = $('#h-backup'); if (!box) return;
+    var b = Save.backupDue(); box.hidden = !b.due; if (!b.due) return;
+    box.innerHTML = '<div class="bk-tx"><b>Time to back up your game</b><small>' + (b.never ? 'You have not exported a save yet.' : 'Your last export was ' + b.days + ' days ago.') + ' Your stamps and streak live only in this browser.</small></div>' +
+      '<div class="bk-bt"><button class="pbtn" id="bk-now">Export now</button><button class="pbtn light" id="bk-later">Remind me later</button></div>';
+    $('#bk-now').addEventListener('click', function () { Save.download(); Sound.play('collect'); box.innerHTML = '<div class="bk-tx"><b>Backup saved</b><small>Keep the file somewhere safe, like Drive or email. I will remind you again in a week.</small></div>'; setTimeout(function () { box.hidden = true; }, 4000); });
+    $('#bk-later').addEventListener('click', function () { Save.snoozeBackup(); box.hidden = true; });
   }
   /* streak banner and the Today task list (PRD FR-1.5) */
   function paintToday() {
