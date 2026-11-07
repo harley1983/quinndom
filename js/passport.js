@@ -343,11 +343,16 @@ var Passport = (function () {
       '<div class="issue"><span class="logo">' + Art.sprite('brain') + '</span><div><span class="kick">ISSUED</span><b>' + issued + '</b><span class="kick">LAST STAMPED</span><b>' + last + '</b></div></div>' +
       '<div class="contgrid">' + grid + '</div>' +
       '<div class="stats"><div><b>' + st.length + '</b><span>countries</span></div><div><b class="g">' + gold + '</b><span>gold</span></div><div><b>' + played + '</b><span>days played</span></div></div>' +
-      (st.length ? '<button class="sharebtn" id="pp-share">SAVE SHARE CARD</button><p class="note" id="pp-share-note" role="status"></p>' : '<p class="note">Your passport is empty. One right answer earns your first stamp.</p>');
+      (st.length ? '<div class="sharerow"><button class="sharebtn" id="pp-share">SAVE SHARE CARD</button><button class="sharebtn alt" id="pp-print">PRINT</button></div><p class="note" id="pp-share-note" role="status"></p>' : '<p class="note">Your passport is empty. One right answer earns your first stamp.</p>');
     var sb = $('#pp-share');
     if (sb) sb.addEventListener('click', function () {
       var nt = $('#pp-share-note'); sb.disabled = true; nt.textContent = 'Drawing your card…';
       ShareCard.save().then(function (ok) { nt.textContent = ok === 'cancel' ? '' : ok ? 'Saved ' + ShareCard.fileName() : 'Could not make the image on this browser.'; sb.disabled = false; h.sound('stamp'); }, function () { nt.textContent = 'Could not make the image on this browser.'; sb.disabled = false; });
+    });
+    var pb = $('#pp-print');
+    if (pb) pb.addEventListener('click', function () {
+      var nt = $('#pp-share-note'); pb.disabled = true; nt.textContent = 'Getting your page ready…';
+      ShareCard.print().then(function (ok) { nt.textContent = ok ? '' : 'Could not print on this browser.'; pb.disabled = false; }, function () { nt.textContent = 'Could not print on this browser.'; pb.disabled = false; });
     });
     [].forEach.call(node.querySelectorAll('#pane-book .cont'), function (b) { b.addEventListener('click', function () { openList(b.getAttribute('data-k')); }); });
   }

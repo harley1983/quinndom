@@ -143,5 +143,22 @@ var ShareCard = (function () {
     setTimeout(function () { URL.revokeObjectURL(u); }, 4000); return true;
   }
 
-  return { make: make, save: save, fileName: fileName };
+  /* Print: shows the card alone, full page, and opens the print dialog (css/passport.css hides everything else while printing). */
+  function print() {
+    return make().then(blobOf).then(function (blob) {
+      if (!blob) return false;
+      var u = URL.createObjectURL(blob), sheet = document.createElement('div'), im = new Image();
+      sheet.id = 'print-sheet'; im.alt = 'My QuinnDom passport'; sheet.appendChild(im); document.body.appendChild(sheet);
+      return new Promise(function (ok) {
+        function go() {
+          var done = function () { window.removeEventListener('afterprint', done); sheet.remove(); URL.revokeObjectURL(u); ok(true); };
+          window.addEventListener('afterprint', done);
+          setTimeout(function () { window.print(); if (!('onafterprint' in window)) done(); }, 50);
+        }
+        im.onload = go; im.onerror = function () { sheet.remove(); ok(false); }; im.src = u;
+      });
+    });
+  }
+
+  return { make: make, save: save, print: print, fileName: fileName };
 })();

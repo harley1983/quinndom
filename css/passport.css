@@ -222,3 +222,13 @@
 
 .sharebtn{margin-top:14px;width:100%;padding:14px 10px;border:0;cursor:pointer;background:#FFE14D;color:#111;font:400 26px/24px var(--font-pixel);letter-spacing:2px;box-shadow:0 0 0 4px #111,6px 6px 0 4px #111;transition:transform .15s var(--ease)}
 .sharebtn:hover{transform:translate(-2px,-2px)}.sharebtn:active{transform:translate(3px,3px);box-shadow:0 0 0 4px #111,2px 2px 0 4px #111}.sharebtn:disabled{opacity:.6;cursor:wait}
+
+.sharerow{display:flex;gap:14px;margin-top:14px}.sharerow .sharebtn{margin-top:0;flex:1}.sharerow .sharebtn.alt{flex:0 0 34%;background:#fff}
+#print-sheet{display:none}
+@media print{
+  @page{margin:0;size:auto}
+  html,body{background:#fff!important;margin:0!important;height:auto!important;overflow:visible!important}
+  body>*:not(#print-sheet){display:none!important}
+  #print-sheet{display:flex!important;align-items:center;justify-content:center;width:100vw;height:100vh}
+  #print-sheet img{max-width:100%;max-height:100vh;width:auto;height:auto;object-fit:contain;image-rendering:auto}
+}
