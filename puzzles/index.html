@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuinnDom Release 2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&family=Space+Grotesk:wght@500;700&family=VT323&display=swap">
+<style>
+/* Layout: one plain launcher. Journey leads as a wide card, the five puzzles sit in a grid, then a short test checklist. */
+:root{--bg:#F3F7EA;--panel:#FBF7EA;--ink:#14261B;--muted:#4A5E50;--accent:#237A43;--accent-ink:#fff;--sun:#F7C948;--line:#14261B;
+--font-head:"Space Grotesk",system-ui,sans-serif;--font-body:"Nunito Sans",system-ui,sans-serif;--font-pixel:"VT323",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0D1812;--panel:#14251D;--ink:#E9F2E4;--muted:#A9BDB0;--accent:#3FA55F;--accent-ink:#0D1812;--line:#7DEBB0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0D1812;--panel:#14251D;--ink:#E9F2E4;--muted:#A9BDB0;--accent:#3FA55F;--accent-ink:#0D1812;--line:#7DEBB0;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font-body);padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font:700 clamp(28px,6vw,40px)/1.1 var(--font-head);margin:0;text-wrap:balance}
+.sub{font:20px/1.2 var(--font-pixel);letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin:0 0 6px}
+p{margin:0}.lead{color:var(--muted);max-width:60ch}
+.card{display:flex;flex-direction:column;gap:8px;background:var(--panel);border:3px solid var(--line);border-radius:6px;box-shadow:0 5px 0 var(--line);padding:16px;color:inherit;text-decoration:none;min-width:0}
+.card h2{font:700 20px/1.2 var(--font-head);margin:0}
+.card .tag{font:18px/1 var(--font-pixel);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.card .go{margin-top:auto;align-self:flex-start;font:700 15px var(--font-head);background:var(--accent);color:var(--accent-ink);border:2px solid var(--line);border-radius:8px;padding:8px 14px;box-shadow:0 3px 0 var(--line)}
+a.card:hover .go,a.card:focus-visible .go{background:var(--sun);color:#14261B}
+a.card:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+a.card:active{transform:translateY(2px);box-shadow:0 3px 0 var(--line)}
+.hero{border-color:var(--line)}.hero h2{font-size:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+h3{font:700 18px var(--font-head);margin:0 0 8px}
+ul.check{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+ul.check li{display:flex;gap:10px;align-items:flex-start}
+ul.check li::before{content:"";flex:none;width:16px;height:16px;margin-top:4px;border:2px solid var(--line);border-radius:3px;background:var(--panel)}
+.note{font-size:14px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){a.card:active{transform:none}}
+</style>
+</head><body>
+<div class="wrap">
+  <header><p class="sub">Daily puzzle city-builder</p><h1>QuinnDom · Release 2 build</h1>
+  <p class="lead">Five daily puzzles and the Journey road prototype, ready to play on a phone or a laptop. Each opens on its own page, and your progress saves in this browser.</p></header>
+  <a class="card hero" href="journey.html"><span class="tag">Prototype · road and army health</span><h2>Journey</h2>
+    <p>A world map with five regions. Run and jump through a side-scrolling level, stomp creatures, hit ? blocks, heal at the tent, then beat the castle boss with one of the five puzzles.</p><span class="go">Play Journey</span></a>
+  <section><h3>The five puzzles</h3>
+  <div class="grid">
+    <a class="card" href="wxrdie.html"><span class="tag">Words</span><h2>Wxrdie</h2><p>Guess the hidden 5 or 6 letter word in six tries. Green, yellow and grey tiles guide you.</p><span class="go">Play</span></a>
+    <a class="card" href="elmundo.html"><span class="tag">Map</span><h2>El Mundo</h2><p>Find the mystery country on the world map. Hotter colours mean closer borders, with distance and direction clues.</p><span class="go">Play</span></a>
+    <a class="card" href="kuduso.html"><span class="tag">Logic</span><h2>Kuduso</h2><p>A 9 by 9 number grid with one answer you can reach by logic. Notes and hints included.</p><span class="go">Play</span></a>
+    <a class="card" href="mapnitude.html"><span class="tag">Numbers</span><h2>Mapnitude</h2><p>Slide to estimate a size or distance. The closer your answer, the more points.</p><span class="go">Play</span></a>
+    <a class="card" href="zame.html"><span class="tag">Maze</span><h2>Zame</h2><p>Find the route through a maze before the clock runs out.</p><span class="go">Play</span></a>
+  </div></section>
+  <section><h3>What to check when you test</h3>
+  <ul class="check">
+    <li>Each page opens and plays on your phone without sideways scrolling.</li>
+    <li>Sound is on by default; the speaker button in each header mutes it.</li>
+    <li>Reload mid-game: the puzzle should resume where you left it.</li>
+    <li>Journey: walk, jump, stomp a creature, hit a ? block, rest at the tent, then fight the castle boss.</li>
+    <li>Tell me anything that feels too hard, too easy or unclear. Difficulty numbers are first guesses.</li>
+  </ul>
+  <p class="note" style="margin-top:10px">This is a test build. Journey's coins, Mimosa and Psilocybe rules are placeholders until the city screen exists.</p></section>
+</div>
+</body></html>

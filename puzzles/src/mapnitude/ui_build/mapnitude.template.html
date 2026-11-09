@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapnitude · QuinnDom</title>
+<style>
+/*FONTS*/
+:root{
+  --forest:#1B5E20; --canopy:#237A43; --leaf:#7BC67A; --moss:#4A7C59; --sky:#3A7BD5;
+  --harbour:#1D3557; --sun:#F7C948; --honey:#E9C46A; --brass:#C9A227; --sand:#E9D8A6; --mist:#F3F7EA;
+  --ink:#14261B; --clay:#C8693D;
+  --ramp:linear-gradient(90deg,#3182BD,#91BFDB,#FEE090,#FC8D59,#D73027,#7F0000);  /* far (blue) to near (dark red) */
+  --sea:#9CCBE8; --land:#EEE9C4; --paper:#FBF7EA; --red:#C0392B; --brown:#14261B;
+  --font-head:"Space Grotesk",system-ui,sans-serif; --font-body:"Nunito Sans",system-ui,sans-serif; --font-pixel:"VT323",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--mist);color:var(--ink);font-family:var(--font-body);font-size:16px;display:flex;flex-direction:column;min-height:100dvh;-webkit-tap-highlight-color:transparent;
+  background-image:radial-gradient(circle at 1px 1px,rgba(35,122,67,.07) 1px,transparent 0);background-size:18px 18px}
+button{font-family:inherit;color:inherit}
+
+header{background:var(--harbour);color:var(--mist);border-bottom:4px solid var(--brass)}
+.bar{max-width:1080px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.brand{display:flex;flex-direction:column;line-height:1}
+.brand h1{margin:0;font-family:var(--font-head);font-weight:700;font-size:26px;letter-spacing:.5px}
+.brand small{font-family:var(--font-pixel);font-size:17px;color:var(--honey);letter-spacing:1px;margin-top:2px}
+.spacer{flex:1}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:2px solid rgba(243,247,234,.35);background:transparent;color:var(--mist);display:grid;place-items:center;cursor:pointer}
+.icon-btn:hover{background:rgba(243,247,234,.12)}
+.icon-btn:focus-visible,.btn:focus-visible,.seg button:focus-visible,.sugg button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn .off{display:none}
+.icon-btn[aria-pressed="false"] .on{display:none}
+.icon-btn[aria-pressed="false"] .off{display:block}
+
+main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:12px 14px 18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-content:start}
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (min-width:900px){
+  main{grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);gap:18px;padding-top:18px}
+  .stage{position:sticky;top:14px;align-self:start}
+  .mapwrap{height:min(620px,calc(100dvh - 140px))!important}
+}
+
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.seg{display:inline-flex;background:#fff;border:2px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:0 3px 0 rgba(20,38,27,.9)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-family:var(--font-head);font-weight:700;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--canopy);color:#fff}
+.stats{display:flex;gap:14px;font-family:var(--font-pixel);font-size:22px;line-height:1;color:var(--forest)}
+.stats span b{font-weight:400;color:var(--ink)}
+.stats i{font-style:normal;font-family:var(--font-body);font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--moss);display:block;margin-bottom:2px}
+
+/* Map (rules from the passport screen, so both games look the same) */
+.mapwrap{position:relative;height:clamp(190px,30dvh,320px);border:3px solid var(--ink);border-radius:6px;overflow:hidden;box-shadow:0 5px 0 rgba(20,38,27,.9);background:var(--sea)}
+#map{position:absolute;inset:0;touch-action:none;cursor:grab;
+  background:var(--sea) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='18'><path d='M3 9q3-3 6 0t6 0' stroke='%238FB9CF' fill='none' stroke-width='1.2'/><path d='M20 15q3-3 6 0t6 0' stroke='%238FB9CF' fill='none' stroke-width='1.2'/></svg>")}
+#map.dragging{cursor:grabbing}
+.mv-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mv-grid{fill:none;stroke:rgba(42,31,24,.2);stroke-width:calc(var(--u,1)*.8px);stroke-dasharray:calc(var(--u,1)*2px) calc(var(--u,1)*5px);pointer-events:none}
+.mv-halo use{fill:none;stroke:rgba(255,255,255,.4);stroke-width:calc(var(--u,1)*10px);stroke-linejoin:round;pointer-events:none}
+.mv-land .land{fill:var(--land);stroke:#1F3A2A;stroke-width:calc(var(--u,1)*1.3px);stroke-linejoin:round;transition:fill .55s ease,stroke .55s ease}
+.mv-borders{fill:none;stroke:#4A5E50;stroke-width:calc(var(--u,1)*.9px);stroke-dasharray:calc(var(--u,1)*4px) calc(var(--u,1)*2.5px);pointer-events:none}
+.mv-land .st-near{stroke:#6E1F16;stroke-width:calc(var(--u,1)*2.4px)}
+.mv-land .st-hit{fill:#93D48E;stroke:#1B5E20;stroke-width:calc(var(--u,1)*2.8px)}
+.mv-land .st-ans{fill:#F6DE92;stroke:#B8860B;stroke-width:calc(var(--u,1)*2.4px)}
+.mv-lat,.mv-lon{position:absolute;pointer-events:none;font-family:var(--font-pixel);font-size:15px;color:#1F3A2A}
+.mv-lon{left:0;right:0;bottom:0;height:22px}.mv-lat{left:0;top:0;bottom:0;width:44px}
+.mv-lon span{position:absolute;bottom:2px;transform:translateX(-50%);padding:0 3px;background:rgba(244,233,205,.82)}
+.mv-lat span{position:absolute;left:2px;transform:translateY(-50%);padding:0 3px;background:rgba(244,233,205,.82)}
+.mv-pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mpin{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
+.mpin svg{position:absolute;left:-15px;top:-42px;width:30px;height:42px;filter:drop-shadow(0 3px 0 rgba(42,31,24,.28));transform-origin:50% 100%}
+.mpin .pf{fill:var(--red)}.mpin.hit .pf{fill:#2E9B57}.mpin.gold .pf{fill:#F7C948}
+.mpin.drop svg{animation:pinDrop .8s cubic-bezier(.3,.7,.4,1) both}
+.mpin .ringfx{position:absolute;left:-28px;top:-28px;width:56px;height:56px;border-radius:50%;border:3px solid var(--red);opacity:0;transform:scale(.2)}
+.mpin.hit .ringfx{border-color:#2E9B57}.mpin.gold .ringfx{border-color:#C9A227}
+.mpin.ring .ringfx{animation:ripple 1.3s .5s ease-out both}
+.mpin .pn{position:absolute;left:-10px;top:-64px;min-width:20px;padding:0 4px;text-align:center;font:18px/18px var(--font-pixel);background:var(--paper);color:var(--brown);box-shadow:0 0 0 2px var(--brown)}
+@keyframes pinDrop{0%{transform:translateY(-190px);opacity:0}8%{opacity:1}52%{transform:translateY(0)}68%{transform:translateY(-16px)}82%{transform:translateY(0)}92%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+@keyframes ripple{0%{opacity:.95;transform:scale(.2)}100%{opacity:0;transform:scale(1.9)}}
+.mv-ui{position:absolute;z-index:4}
+.zoom{left:10px;bottom:28px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:40px;height:40px;border:0;background:var(--paper);color:var(--brown);font:28px/1 var(--font-pixel);cursor:pointer;box-shadow:0 0 0 3px var(--brown),0 4px 0 3px rgba(42,31,24,.3)}
+.zoom button:active{transform:translateY(2px)}
+.legend{right:8px;top:8px;display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--paper);box-shadow:0 0 0 2px var(--brown);font:16px/1 var(--font-pixel)}
+.legend i{display:block;width:84px;height:12px;background:var(--ramp);border:1px solid var(--brown)}
+
+
+/* Question + slider */
+.qcard{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 14px;box-shadow:0 4px 0 var(--ink);display:flex;flex-direction:column;gap:6px}
+.qtype{font-family:var(--font-pixel);font-size:18px;letter-spacing:1px;color:var(--moss);text-transform:uppercase}
+.qtext{margin:0;font-family:var(--font-head);font-weight:700;font-size:20px;line-height:1.2}
+.value{font-family:var(--font-pixel);font-size:46px;line-height:1;color:var(--forest);text-align:center;padding:4px 0 0;min-height:50px}
+.value small{font-size:22px;color:var(--moss)}
+.sliderbox{position:relative;padding:2px 0 34px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;margin:0;cursor:pointer;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:14px;background:linear-gradient(90deg,#CFE6C0,#7BC67A);border:2px solid var(--ink);border-radius:8px}
+input[type=range]::-moz-range-track{height:10px;background:linear-gradient(90deg,#CFE6C0,#7BC67A);border:2px solid var(--ink);border-radius:8px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:34px;margin-top:-11px;background:var(--sun);border:3px solid var(--ink);border-radius:6px;box-shadow:0 3px 0 var(--ink)}
+input[type=range]::-moz-range-thumb{width:22px;height:28px;background:var(--sun);border:3px solid var(--ink);border-radius:6px;box-shadow:0 3px 0 var(--ink)}
+input[type=range]:focus-visible{outline:3px solid var(--sun);outline-offset:4px;border-radius:8px}
+input[type=range]:disabled{opacity:.5;cursor:default}
+.ticks{position:absolute;left:0;right:0;top:34px;height:28px;pointer-events:none}
+.ticks span{position:absolute;transform:translateX(-50%);font:16px/1 var(--font-pixel);color:#4a5e50;white-space:nowrap}
+.ticks span:before{content:"";position:absolute;left:50%;top:-8px;width:2px;height:6px;margin-left:-1px;background:var(--ink)}
+.nudge{display:flex;justify-content:center;gap:10px}
+.actions2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.actions2 .grow{flex:1}
+.hintnote{font-size:14px;color:#7a5a10;background:var(--note,#FFF3C4);border:2px solid var(--brass);border-radius:10px;padding:5px 10px;animation:rowin .3s ease-out both}
+.hintnote:empty{display:none}
+.btn.primary.big{height:48px;padding:0 24px;font-size:17px}
+
+/* Reveal and final */
+.reveal,.final{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 14px;box-shadow:0 4px 0 var(--ink);display:none;gap:8px;flex-direction:column}
+.reveal.show,.final.show{display:flex}
+.reveal h2,.final h2{margin:0;font-family:var(--font-head);font-size:20px}
+.reveal p,.final p{margin:0;font-size:15px}
+.cmp{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:15px}
+.cmp b{font-family:var(--font-pixel);font-weight:400;font-size:26px;line-height:1.1;color:var(--forest)}
+.cmp b.guess{color:var(--red)}
+.cmp span{align-self:center;color:var(--moss)}
+.scale{position:relative;height:30px;margin:4px 6px 0}
+.scale:before{content:"";position:absolute;left:0;right:0;top:12px;height:6px;border:2px solid var(--ink);border-radius:5px;background:#E9D8A6}
+.scale i{position:absolute;top:2px;width:4px;height:26px;margin-left:-2px;background:var(--red);border:1px solid var(--ink)}
+.scale i.t{background:#2E9B57}
+.scale i.y:after{top:auto;bottom:-14px}
+.scale{margin-bottom:12px}
+.scale i:after{content:attr(data-l);position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:14px/1 var(--font-pixel);color:var(--ink)}
+.pts{font-family:var(--font-pixel);font-size:34px;line-height:1;color:var(--forest)}
+.pts.low{color:#B3541E}
+.fact{font-size:14px;color:var(--moss)}
+.big{font-family:var(--font-pixel);font-size:54px;line-height:1;color:var(--forest)}
+.stars{font-size:28px;letter-spacing:4px;color:var(--brass)}
+.rounds{display:grid;gap:6px;padding:10px;background:rgba(233,216,166,.45);border:2px solid var(--sand);border-radius:16px}
+.rr{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px;padding:0 10px 0 0;border-radius:8px;border:2px dashed #cdbf8a;background:rgba(255,255,255,.5);overflow:hidden}
+.rr.filled{border:2px solid var(--ink);background:#fff;box-shadow:0 3px 0 rgba(20,38,27,.9);animation:rowin .35s ease-out both}
+.rr .n{align-self:stretch;display:grid;place-items:center;font:20px/1 var(--font-pixel);color:#7d8b80}
+.rr.filled .n{color:var(--ink)}
+.rr .nm{font-family:var(--font-head);font-weight:700;font-size:14px;line-height:1.15;padding:3px 0}
+.rr .nm small{display:block;font-family:var(--font-body);font-weight:400;font-size:13px;color:var(--moss)}
+.rr .pt{font:22px/1 var(--font-pixel);text-align:right}
+.g-perfect .n,.g-great .n{background:#93D48E}.g-good .n{background:#F6DE92}.g-meh .n{background:#F5B98A}.g-miss .n{background:#EE9A8F}
+.linkbtn{border:0;background:none;padding:2px 0;font:inherit;font-weight:700;color:var(--ink);text-decoration:underline;cursor:pointer}
+.linkbtn.warnbtn{color:#9C4A25}
+.warn{margin:0;min-height:22px;text-align:center;font-family:var(--font-head);font-weight:700;font-size:15px;color:#9C4A25}
+.btn{white-space:nowrap;border:2px solid var(--ink);background:#fff;border-radius:10px;padding:9px 14px;font-family:var(--font-head);font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--canopy);color:#fff}
+.btn.small{padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:0 3px 0 var(--ink)}
+@keyframes rowin{from{opacity:0;transform:translateY(-6px)}}
+@keyframes warnin{from{transform:translateY(-4px);opacity:0}}
+.toast-host{position:fixed;top:84px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:20}
+.toast{background:var(--ink);color:var(--mist);padding:10px 16px;border-radius:10px;font-family:var(--font-head);font-weight:700;font-size:15px;box-shadow:0 4px 0 rgba(0,0,0,.25);animation:rowin .25s ease-out}
+dialog{border:2px solid var(--ink);border-radius:16px;padding:0;max-width:min(440px,92vw);width:100%;background:var(--mist);color:var(--ink);box-shadow:0 6px 0 var(--ink)}
+dialog::backdrop{background:rgba(29,53,87,.55)}
+.dlg{padding:18px 18px 16px}
+.dlg h2{margin:0 0 8px;font-family:var(--font-head);font-size:22px}
+.dlg p{margin:0 0 10px;line-height:1.45}
+.dlg .close{float:right}
+@media (prefers-reduced-motion:reduce){.rr.filled,.mpin.drop svg,.hintnote{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><h1>Mapnitude</h1><small>QUINNDOM PUZZLE</small></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="btn-sound" aria-label="Sound effects" aria-pressed="false">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-help" aria-label="How to play">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8"/><path d="M12 17h.01"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="stage">
+    <div class="mapwrap" id="mapwrap">
+      <div id="map" aria-label="World map showing the country in the question"></div>
+      <div class="mv-ui zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Difficulty">
+        <button id="d-easy" data-d="easy" aria-pressed="true">Easy</button>
+        <button id="d-normal" data-d="normal" aria-pressed="false">Normal</button>
+        <button id="d-hard" data-d="hard" aria-pressed="false">Hard</button>
+      </div>
+      <div class="stats" aria-live="polite">
+        <span><i>Round</i><b id="stat-round">1/3</b></span>
+        <span><i>Score</i><b id="stat-score">0</b></span>
+      </div>
+    </div>
+
+    <section class="qcard" id="qcard">
+      <div class="qtype" id="qtype"></div>
+      <p class="qtext" id="qtext"></p>
+      <div class="value" id="value" aria-live="off"></div>
+      <div class="sliderbox">
+        <input type="range" id="slider" min="0" max="1000" step="1" value="500" aria-label="Your estimate">
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+      </div>
+      <div class="nudge">
+        <button class="btn small" id="b-minus" type="button" aria-label="Decrease by 2 percent">− 2%</button>
+        <button class="btn small" id="b-plus" type="button" aria-label="Increase by 2 percent">+ 2%</button>
+      </div>
+      <div class="hintnote" id="hintnote" role="status"></div>
+      <div class="actions2">
+        <button class="btn small" id="btn-hint" type="button">Hint</button>
+        <span class="grow"></span>
+        <button class="btn primary big" id="btn-lock" type="button">Lock in</button>
+      </div>
+    </section>
+
+    <section class="reveal" id="reveal" aria-live="polite">
+      <h2 id="rv-title"></h2>
+      <div class="cmp"><span>Truth</span><b id="rv-truth"></b><span>You said</span><b class="guess" id="rv-guess"></b></div>
+      <div class="scale" id="rv-scale" aria-hidden="true"></div>
+      <p><span class="pts" id="rv-pts"></span> <span id="rv-off"></span></p>
+      <p class="fact" id="rv-fact"></p>
+      <div class="actions2"><span class="grow"></span><button class="btn primary big" id="btn-next-round" type="button">Next round</button></div>
+    </section>
+
+    <section class="final" id="final" aria-live="polite">
+      <h2 id="fn-title"></h2>
+      <div class="big" id="fn-score"></div>
+      <div class="stars" id="fn-stars" aria-hidden="true"></div>
+      <p id="fn-sub"></p>
+      <div class="actions2"><button class="btn" id="btn-share" type="button">Share</button><span class="grow"></span><button class="btn primary big" id="btn-next" type="button">Next game</button></div>
+    </section>
+
+    <div class="rounds" id="rounds" aria-label="Your rounds"></div>
+  </div>
+</main>
+
+<div class="toast-host" id="toasts"></div>
+
+<dialog id="dlg-help"><div class="dlg">
+  <button class="btn close" onclick="this.closest('dialog').close()">Close</button>
+  <h2>How to play</h2>
+  <p>Easy is 3 rounds, Normal and Hard are 4. Each one asks for a number about a country: how many people live there, how big it is, how high its tallest peak is, or how far apart two capitals are. Drag the slider (or use the 2% buttons) and lock in your best estimate.</p>
+  <p>The slider is logarithmic: each tick is ten times bigger than the last, so the first job is getting the <b>order of magnitude</b> right. Points depend on how many times too big or too small you are, not on the raw difference. Up to 1,000 a round, and 60% of the total passes.</p>
+  <p>Easy asks about famous countries, so it wants you within 5% for full points. Normal digs deeper and forgives 8%. Hard is the obscure ones, so it forgives 15%. Stuck? A hint squeezes the slider around the answer but costs 25% of that round's points the first time and 50% the second. You get 3 hints a game on Easy and Normal, 2 on Hard.</p>
+  <p>Numbers are current-day figures: population is the latest (2025) UN/World Bank estimate, area is total area, and peaks are each country's highest point.</p>
+</div></dialog>
+
+<script>
+/*DATA*/
+/*COUNTRIES*/
+/*WORLDMAP*/
+/*MAPVIEW*/
+/*SOUND*/
+/*ENGINE*/
+</script>
+<script>
+(function(){
+"use strict";
+var E = MapnitudeEngine, FACTS = DATA, BY = {};
+FACTS.forEach(function(f){ BY[f.code] = f; });
+function $(id){ return document.getElementById(id); }
+function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+var KEY_SAVE = "quinndom.mapnitude.save", KEY_SESSION = "quinndom.mapnitude.session", KEY_SETTINGS = "quinndom.mapnitude.settings";
+
+/* ---------- public hooks for the app shell ---------- */
+var hooks = window.Mapnitude = {
+  config: { maxHints: E.HINTS, bonusHints: 0, passPercent: E.PASS_PERCENT },   // hints per game; a hero can add bonusHints
+  getSave: function(){ return JSON.parse(JSON.stringify(save)); },
+  loadSave: function(s){ save = E.normaliseSave(s); store(KEY_SAVE, save); },
+  onFinish: function(info){}                     // { difficulty, index, won, score, max, rounds, hints }: the shell pays rewards here
+};
+var save = E.normaliseSave(load(KEY_SAVE, null));
+var settings = Object.assign({ difficulty:"easy", sfx:true, sfxSet:false, volume:0.7 }, load(KEY_SETTINGS, {}));
+if(!settings.sfxSet) settings.sfx = true;
+if(E.DIFFICULTIES.indexOf(settings.difficulty) < 0) settings.difficulty = "easy";
+
+function applySound(){ Sound.setConfig({ sfx: settings.sfx, volume: settings.volume }); $("btn-sound").setAttribute("aria-pressed", String(settings.sfx)); }
+function sfx(name){ try{ if(settings.sfx) Sound.play(name); }catch(e){} }
+
+/* ---------- map ---------- */
+var mv = MapView.create($("map"));
+mv.jumpHome();
+$("zin").onclick = function(){ mv.zoom(0.6); };
+$("zout").onclick = function(){ mv.zoom(1.6); };
+function showRound(round, animate){
+  mv.clearStates(); mv.clearPins();
+  var codes = round.b ? [round.a, round.b] : [round.a];
+  codes.forEach(function(c, i){ mv.state(c, "st-ans"); mv.pin(c, { kind: "gold", drop: animate, ring: animate, num: codes.length > 1 ? i + 1 : undefined }); });
+  var ms = animate ? 1000 : 0;
+  if(codes.length > 1) mv.flyBox(codes, ms); else mv.fly(round.a, ms, 4);
+}
+mv.onPick(function(code){ var f = BY[code]; if(f) toast(f.name); });
+
+/* ---------- formatting ---------- */
+function short(type, v){
+  if(type === "population"){ if(v >= 1e9) return (v / 1e9) + "B"; if(v >= 1e6) return (v / 1e6) + "M"; if(v >= 1e3) return (v / 1e3) + "K"; return String(v); }
+  if(type === "area" && v >= 1e6) return (v / 1e6) + "M";
+  if(v >= 1e3) return (v / 1e3 === Math.round(v / 1e3) ? v / 1e3 + "K" : v.toLocaleString("en-US"));
+  return String(v);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+var QTYPE = { population: "Population", area: "Area", peak: "Highest point", distance: "Capital to capital" };
+
+/* ---------- game state ---------- */
+var game = null, revealing = false;
+function budget(){ return E.hintsAllowed(game.difficulty, hooks.config.bonusHints); }
+function persistSession(){
+  store(KEY_SESSION, { difficulty: game.difficulty, index: game.index, results: game.results.map(function(r){ return { g: r.guess, h: r.hints }; }), hintsUsed: game.hintsUsed, hintLevel: game.hintLevel });
+}
+function startGame(difficulty, index, replay){
+  game = E.makeGame(difficulty, index, FACTS); revealing = false;
+  if(replay){
+    replay.results.forEach(function(r){ game.hintLevel = r.h; E.submit(game, r.g); });
+    game.hintsUsed = replay.hintsUsed || 0; game.hintLevel = game.status === "done" ? 0 : (replay.hintLevel || 0);
+  }
+  persistSession(); renderAll();
+  if(game.status === "done"){ showFinal(true); } else { beginRound(false); }
+}
+function newGame(){ startGame(settings.difficulty, save.completed[settings.difficulty] || 0); }
+
+/* ---------- slider ---------- */
+var win = [1, 10], pos = 0.5;
+function curWindow(){ return E.hintWindow(E.currentRound(game), game.hintLevel); }
+function valueNow(){ return E.tidy(E.sliderToValue(pos, win[0], win[1])); }
+function drawValue(){
+  var r = E.currentRound(game), v = valueNow();
+  $("value").textContent = E.formatValue(r.type, v);
+  $("slider").value = Math.round(pos * 1000);
+  $("slider").setAttribute("aria-valuetext", E.formatValue(r.type, v));
+}
+function drawTicks(){
+  var r = E.currentRound(game), lo = win[0], hi = win[1], out = [], k0 = Math.floor(Math.log10(lo)), k1 = Math.ceil(Math.log10(hi)), all = [];
+  for(var k = k0; k <= k1; k++) [1, 2, 5].forEach(function(m){ var v = m * Math.pow(10, k); if(v > lo * 1.02 && v < hi / 1.02) all.push(v); });
+  var tick = all.length > 8 ? all.filter(function(v){ return Math.abs(Math.log10(v) - Math.round(Math.log10(v))) < 1e-9; }) : all;
+  var ends = [lo, hi];
+  $("ticks").innerHTML = tick.map(function(v){ return label(v); }).join("");
+  function label(v){ var p = E.valueToSlider(v, lo, hi); return '<span style="left:calc(14px + (100% - 28px) * ' + p.toFixed(4) + ')">' + short(r.type, v) + '</span>'; }
+  void ends; void out;
+}
+function setupSlider(keepPos){
+  win = curWindow(); if(!keepPos) pos = 0.5; drawTicks(); drawValue();
+}
+$("slider").addEventListener("input", function(){ pos = this.value / 1000; drawValue(); });
+function nudge(f){ var span = Math.log(win[1] / win[0]); pos = Math.min(1, Math.max(0, pos + Math.log(f) / span)); drawValue(); sfx("tap"); }
+$("b-minus").onclick = function(){ nudge(1 / 1.02); };
+$("b-plus").onclick = function(){ nudge(1.02); };
+
+/* ---------- rendering ---------- */
+function qText(round){ return E.questionText(round, BY); }
+function beginRound(animate){
+  var round = E.currentRound(game);
+  $("qtype").textContent = "Round " + (game.results.length + 1) + " · " + QTYPE[round.type];
+  $("qtext").textContent = qText(round);
+  $("qcard").style.display = ""; $("reveal").classList.remove("show"); $("final").classList.remove("show");
+  showRound(round, animate); setupSlider(false); renderHint(); renderStats();
+  $("slider").disabled = false; $("btn-lock").disabled = false;
+}
+function renderHint(){
+  var left = budget() - game.hintsUsed, note = "";
+  if(game.hintLevel){ var w = curWindow(), t = E.TYPES[E.currentRound(game).type].unit; void t; note = "Hint: the answer is between " + E.formatValue(E.currentRound(game).type, E.tidy(w[0])) + " and " + E.formatValue(E.currentRound(game).type, E.tidy(w[1])) + ". Max " + Math.round(E.HINT_COST[game.hintLevel] * 100) + "% of this round's points."; }
+  $("hintnote").textContent = note;
+  $("btn-hint").textContent = "Hint (" + Math.max(0, left) + " left)";
+  $("btn-hint").disabled = left <= 0 || game.hintLevel >= 2;
+}
+function renderStats(){
+  $("stat-round").textContent = Math.min(game.results.length + 1, game.rounds.length) + "/" + game.rounds.length;
+  $("stat-score").textContent = E.totalScore(game).toLocaleString("en-US");
+}
+function names(round){ var a = BY[round.a].name; return round.b ? a + " ↔ " + BY[round.b].name : a; }
+function renderRounds(){
+  var html = game.rounds.map(function(round, i){
+    var r = game.results[i];
+    if(!r) return '<div class="rr"><span class="n">' + (i + 1) + '</span><span class="nm">' + QTYPE[round.type] + '</span><span class="pt"></span></div>';
+    return '<div class="rr filled g-' + r.rating + '"><span class="n">' + (i + 1) + '</span><span class="nm">' + esc(names(round)) + '<small>' + QTYPE[round.type] + ' · ' + E.formatValue(r.type, r.guess) + ' vs ' + E.formatValue(r.type, r.truth) + (r.hints ? " · hint×" + r.hints : "") + '</small></span><span class="pt">+' + r.points + '</span></div>';
+  }).join("");
+  $("rounds").innerHTML = html;
+}
+function renderAll(){
+  E.DIFFICULTIES.forEach(function(d){ $("d-" + d).setAttribute("aria-pressed", String(d === settings.difficulty)); });
+  renderRounds(); renderStats();
+}
+
+/* ---------- play ---------- */
+var QUIPS = {
+  perfect: ["Spooky. Are you the census?", "Did you peek at the almanac?", "That is suspiciously exact."],
+  great: ["Surveyor-grade guess.", "Cartographers would nod.", "Barely a rounding error."],
+  good: ["Respectable ballpark.", "Right neighbourhood, wrong house.", "Not bad, explorer."],
+  meh: ["Right hemisphere, at least.", "The order of magnitude is still negotiable.", "Closer than a coin toss."],
+  miss: ["Bold. Creative. Wrong.", "That number lives in another universe.", "Did a goat sit on the slider?"]
+};
+function quip(r){ var a = QUIPS[r]; return a[Math.floor(Math.random() * a.length)]; }
+
+function useHint(){
+  var r = E.useHint(game, hooks.config.bonusHints);
+  if(!r.ok){ toast(r.error); return; }
+  sfx("collect"); persistSession(); setupSlider(false); renderHint();
+}
+$("btn-hint").onclick = useHint;
+
+function lockIn(){
+  if(revealing || game.status !== "playing") return;
+  var round = E.currentRound(game), guess = valueNow(), res = E.submit(game, guess);
+  if(!res.ok){ toast("Pick a number first"); return; }
+  revealing = true; persistSession();
+  var r = res.result; sfx("pindrop");
+  setTimeout(function(){ sfx(r.rating === "miss" || r.rating === "meh" ? "notquite" : r.rating === "good" ? "correct" : "hit"); }, 450);
+  $("slider").disabled = true; $("btn-lock").disabled = true;
+  showReveal(round, r, res.done); renderRounds(); renderStats();
+}
+function factLine(round, r){
+  var a = BY[round.a];
+  if(round.type === "population") return a.name + " · latest estimate (" + (a.popYear || 2025) + ", UN / World Bank series).";
+  if(round.type === "area") return a.name + " · total area, land and inland water.";
+  if(round.type === "peak") return a.name + " · highest point: " + a.peak + ".";
+  var b = BY[round.b]; return a.capital + " (" + a.name + ") to " + b.capital + " (" + b.name + "), straight line over the globe.";
+}
+function showReveal(round, r, done){
+  var T = E.TYPES[round.type], full = [T.min, T.max];
+  $("qcard").style.display = "none";
+  $("rv-title").textContent = quip(r.rating);
+  $("rv-truth").textContent = E.formatValue(r.type, r.truth); $("rv-guess").textContent = E.formatValue(r.type, r.guess);
+  $("rv-pts").textContent = "+" + r.points; $("rv-pts").className = "pts" + (r.points < 250 ? " low" : "");
+  $("rv-off").textContent = E.offBy(r.ratio) + (r.hints ? " · hint penalty applied" : "");
+  $("rv-fact").textContent = factLine(round, r);
+  var pg = E.valueToSlider(Math.min(full[1], Math.max(full[0], r.guess)), full[0], full[1]), pt = E.valueToSlider(Math.min(full[1], Math.max(full[0], r.truth)), full[0], full[1]);
+  $("rv-scale").innerHTML = '<i class="t" data-l="truth" style="left:' + (pt * 100).toFixed(2) + '%"></i><i class="y" data-l="you" style="left:' + (pg * 100).toFixed(2) + '%;margin-top:' + (Math.abs(pg - pt) < 0.12 ? 0 : 0) + 'px"></i>';
+  $("btn-next-round").textContent = done ? "See results" : "Next round";
+  $("reveal").classList.add("show");
+  var codes = round.b ? [round.a, round.b] : [round.a];
+  codes.forEach(function(c){ mv.pin(c, { kind: r.share >= 0.5 ? "hit" : "", ring: true }); });
+}
+$("btn-next-round").onclick = function(){
+  sfx("tap"); revealing = false;
+  if(game.status === "done"){ finish(); } else { beginRound(true); persistSession(); }
+};
+$("btn-lock").onclick = lockIn;
+
+function finish(){
+  var won = E.passed(game, hooks.config.passPercent);
+  E.recordCompleted(save, game.difficulty); store(KEY_SAVE, save);
+  persistSession(); showFinal(false);
+  setTimeout(function(){ sfx(won ? "solved" : "notquite"); }, 150);
+  try{ hooks.onFinish({ difficulty: game.difficulty, index: game.index, won: won, score: E.totalScore(game), max: E.maxScore(game), rounds: game.results.map(function(r){ return { type: r.type, points: r.points, hints: r.hints }; }), hints: game.hintsUsed }); }catch(e){}
+}
+function showFinal(restored){
+  var won = E.passed(game, hooks.config.passPercent), s = E.stars(game);
+  $("qcard").style.display = "none"; $("reveal").classList.remove("show");
+  $("fn-title").textContent = won ? (s === 3 ? "Atlas-level estimating!" : "Passed. The map approves.") : "Not quite. Back to the almanac.";
+  $("fn-score").textContent = E.totalScore(game).toLocaleString("en-US") + " / " + E.maxScore(game).toLocaleString("en-US");
+  $("fn-stars").textContent = "★".repeat(s) + "☆".repeat(3 - s);
+  $("fn-sub").textContent = game.hintsUsed ? game.hintsUsed + (game.hintsUsed === 1 ? " hint used." : " hints used.") : "No hints used.";
+  $("final").classList.add("show"); renderRounds(); renderStats();
+  mv.clearStates(); mv.clearPins(); mv.jumpHome();
+}
+
+/* ---------- wiring ---------- */
+$("btn-next").onclick = function(){ sfx("tap"); newGame(); };
+E.DIFFICULTIES.forEach(function(d){
+  $("d-" + d).onclick = function(){ if(d === settings.difficulty) return; settings.difficulty = d; store(KEY_SETTINGS, settings); newGame(); };
+});
+$("btn-help").onclick = function(){ $("dlg-help").showModal(); };
+$("btn-sound").onclick = function(){ settings.sfx = !settings.sfx; settings.sfxSet = true; store(KEY_SETTINGS, settings); applySound(); if(settings.sfx) Sound.play("collect"); };
+function toast(msg){ var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; $("toasts").appendChild(t); setTimeout(function(){ t.remove(); }, 2200); }
+$("btn-share").onclick = function(){
+  var text = E.shareGrid(game);
+  if(navigator.share){ navigator.share({ text: text }).catch(function(){}); return; }
+  try{ navigator.clipboard.writeText(text).then(function(){ toast("Copied to clipboard"); }, function(){ toast("Could not copy"); }); }catch(e){ toast("Could not copy"); }
+};
+document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
+
+/* ---------- boot ---------- */
+applySound();
+var sess = load(KEY_SESSION, null);
+if(sess && E.DIFFICULTIES.indexOf(sess.difficulty) >= 0 && typeof sess.index === "number" && Array.isArray(sess.results)){
+  settings.difficulty = sess.difficulty; startGame(sess.difficulty, sess.index, sess);
+} else { newGame(); }
+window.addEventListener("load", function(){ mv.resize(); });
+})();
+</script>
+</body>
+</html>
