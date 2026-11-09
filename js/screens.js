@@ -195,14 +195,14 @@ var Screens = (function () {
     var tasks = [
       { done: v.checkedIn, label: 'Check in', sub: v.checkedIn ? 'Reward collected' : 'Reward waiting', go: null },
       { done: sm.done, label: 'Passport prompt', sub: sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps', go: 'passport' },
-      { done: false, label: 'Puzzle', sub: 'Arrives in Release 2', soon: true },
+      { done: false, label: 'Puzzles and Journey', sub: 'Five puzzles and the Journey road', href: 'puzzles/' },
       { done: false, label: 'Citizens and city', sub: 'Arrives in Releases 3 and 4', soon: true },
       { done: false, label: 'World-map boss', sub: 'Arrives in Release 5', soon: true }
     ];
     $('#h-tasks').innerHTML = tasks.map(function (t, i) {
       var box = '<span class="ck' + (t.done ? ' on' : '') + '" aria-hidden="true">' + (t.done ? '\u2713' : '') + '</span>';
       var body = '<span class="tx"><b>' + t.label + '</b><small>' + t.sub + '</small></span>';
-      var act = t.go ? '<button class="pbtn' + (t.done ? ' light' : '') + '" data-go="' + t.go + '">' + (t.done ? 'View' : 'Open') + '</button>' : (t.soon ? '<span class="soon">SOON</span>' : '');
+      var act = t.href ? '<a class="pbtn" href="' + t.href + '">Play</a>' : t.go ? '<button class="pbtn' + (t.done ? ' light' : '') + '" data-go="' + t.go + '">' + (t.done ? 'View' : 'Open') + '</button>' : (t.soon ? '<span class="soon">SOON</span>' : '');
       return '<li class="' + (t.soon ? 'soon' : '') + (t.done ? ' done' : '') + '">' + box + body + act + '</li>';
     }).join('');
     [].forEach.call(document.querySelectorAll('#h-tasks [data-go]'), function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-go')); }); });
