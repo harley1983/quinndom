@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zame · QuinnDom</title>
+<style>
+/*FONTS*/
+:root{
+  --forest:#1B5E20; --canopy:#237A43; --leaf:#7BC67A; --moss:#4A7C59; --sky:#3A7BD5;
+  --harbour:#1D3557; --sun:#F7C948; --honey:#E9C46A; --brass:#C9A227; --sand:#E9D8A6; --mist:#F3F7EA;
+  --ink:#14261B; --clay:#C8693D;
+  --ramp:linear-gradient(90deg,#3182BD,#91BFDB,#FEE090,#FC8D59,#D73027,#7F0000);  /* far (blue) to near (dark red) */
+  --sea:#9CCBE8; --land:#EEE9C4; --paper:#FBF7EA; --red:#C0392B; --brown:#14261B;
+  --font-head:"Space Grotesk",system-ui,sans-serif; --font-body:"Nunito Sans",system-ui,sans-serif; --font-pixel:"VT323",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--mist);color:var(--ink);font-family:var(--font-body);font-size:16px;display:flex;flex-direction:column;min-height:100dvh;-webkit-tap-highlight-color:transparent;
+  background-image:radial-gradient(circle at 1px 1px,rgba(35,122,67,.07) 1px,transparent 0);background-size:18px 18px}
+button{font-family:inherit;color:inherit}
+
+header{background:var(--harbour);color:var(--mist);border-bottom:4px solid var(--brass)}
+.bar{max-width:1080px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.brand{display:flex;flex-direction:column;line-height:1}
+.brand h1{margin:0;font-family:var(--font-head);font-weight:700;font-size:26px;letter-spacing:.5px}
+.brand small{font-family:var(--font-pixel);font-size:17px;color:var(--honey);letter-spacing:1px;margin-top:2px}
+.spacer{flex:1}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:2px solid rgba(243,247,234,.35);background:transparent;color:var(--mist);display:grid;place-items:center;cursor:pointer}
+.icon-btn:hover{background:rgba(243,247,234,.12)}
+.icon-btn:focus-visible,.btn:focus-visible,.seg button:focus-visible,.sugg button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn .off{display:none}
+.icon-btn[aria-pressed="false"] .on{display:none}
+.icon-btn[aria-pressed="false"] .off{display:block}
+
+main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:12px 14px 18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-content:start}
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (min-width:900px){
+  main{grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);gap:18px;padding-top:18px}
+  .stage{position:sticky;top:14px;align-self:start}
+  .mapwrap{height:min(620px,calc(100dvh - 140px))!important}
+}
+
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.seg{display:inline-flex;background:#fff;border:2px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:0 3px 0 rgba(20,38,27,.9)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-family:var(--font-head);font-weight:700;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--canopy);color:#fff}
+.stats{display:flex;gap:14px;font-family:var(--font-pixel);font-size:22px;line-height:1;color:var(--forest)}
+.stats span b{font-weight:400;color:var(--ink)}
+.stats i{font-style:normal;font-family:var(--font-body);font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--moss);display:block;margin-bottom:2px}
+
+
+/* Board */
+.stage{display:flex;flex-direction:column;align-items:center;gap:10px}
+.boardwrap{position:relative;width:100%;display:flex;justify-content:center}
+.board{position:relative;border:3px solid var(--ink);border-radius:6px;box-shadow:0 5px 0 rgba(20,38,27,.9);background:var(--ink);line-height:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;image-rendering:pixelated;cursor:pointer}
+.board.shake{animation:shake .35s ease}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+.legendrow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--moss)}
+.legendrow i{display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:-1px;border:2px solid var(--ink)}
+.timer.low b{color:#B30000;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+
+.warn{margin:0;min-height:22px;text-align:center;font-family:var(--font-head);font-weight:700;font-size:15px;color:#9C4A25}
+.warn.show{animation:warnin .3s ease-out}
+@keyframes warnin{from{transform:translateY(-4px);opacity:0}}
+.hints{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:38px}
+.hints .chip{background:var(--note,#FFF3C4);border:2px solid var(--brass);border-radius:999px;padding:4px 12px;font-family:var(--font-head);font-weight:700;font-size:14px;animation:rowin .3s ease-out both}
+.btn{white-space:nowrap;border:2px solid var(--ink);background:#fff;border-radius:10px;padding:9px 14px;font-family:var(--font-head);font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--canopy);color:#fff}
+.btn.small{padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.linkbtn{border:0;background:none;padding:2px 0;font:inherit;font-weight:700;color:var(--ink);text-decoration:underline;cursor:pointer}
+.linkbtn.warnbtn{color:#9C4A25}
+.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,56px);gap:8px;justify-content:center;margin:2px 0}
+.pad button{border:2px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 4px 0 var(--ink);display:grid;place-items:center;cursor:pointer;touch-action:manipulation}
+.pad button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink);background:var(--sand)}
+.pad svg{width:26px;height:26px}
+.pad .up{grid-column:2;grid-row:1}.pad .left{grid-column:1;grid-row:2}.pad .down{grid-column:2;grid-row:2}.pad .right{grid-column:3;grid-row:2}
+.hintrow{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.result{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 14px;box-shadow:0 4px 0 var(--ink);display:none;gap:8px;flex-direction:column}
+.result.show{display:flex}
+.result h2{margin:0;font-family:var(--font-head);font-size:20px}
+.result p{margin:0;font-size:15px}
+.result .big{font-family:var(--font-pixel);font-size:34px;line-height:1.05;color:var(--forest)}
+.result .stars{font-size:28px;letter-spacing:4px;color:var(--brass)}
+.result .actions{display:flex;gap:10px;flex-wrap:wrap}
+@keyframes rowin{from{opacity:0;transform:translateY(-6px)}}
+.toast-host{position:fixed;top:84px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:20}
+.toast{background:var(--ink);color:var(--mist);padding:10px 16px;border-radius:10px;font-family:var(--font-head);font-weight:700;font-size:15px;box-shadow:0 4px 0 rgba(0,0,0,.25);animation:rowin .25s ease-out}
+dialog{border:2px solid var(--ink);border-radius:16px;padding:0;max-width:min(440px,92vw);width:100%;background:var(--mist);color:var(--ink);box-shadow:0 6px 0 var(--ink)}
+dialog::backdrop{background:rgba(29,53,87,.55)}
+.dlg{padding:18px 18px 16px}
+.dlg h2{margin:0 0 8px;font-family:var(--font-head);font-size:22px}
+.dlg p{margin:0 0 10px;line-height:1.45}
+.dlg .close{float:right}
+@media (prefers-reduced-motion:reduce){.board.shake,.warn.show,.hints .chip,.timer.low b{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><h1>Zame</h1><small>QUINNDOM PUZZLE</small></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="btn-sound" aria-label="Sound effects" aria-pressed="false">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-help" aria-label="How to play">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8"/><path d="M12 17h.01"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="stage">
+    <div class="boardwrap" id="boardwrap"><div class="board" id="board"><canvas id="cv" aria-label="Maze. Swipe, tap, or use the arrow keys to move."></canvas></div></div>
+    <div class="legendrow" aria-hidden="true"><span><i style="background:#2E9B57"></i>you start</span><span><i style="background:#F7C948"></i>exit</span><span><i style="background:#7BC67A"></i>your trail</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Difficulty">
+        <button id="d-easy" data-d="easy" aria-pressed="true">Easy</button>
+        <button id="d-normal" data-d="normal" aria-pressed="false">Normal</button>
+        <button id="d-hard" data-d="hard" aria-pressed="false">Hard</button>
+      </div>
+      <div class="stats" aria-live="off">
+        <span class="timer" id="timer"><i id="timer-l">Time</i><b id="stat-time">0:00</b></span>
+        <span><i>Steps</i><b id="stat-steps">0</b></span>
+        <span><i>Par</i><b id="stat-par">0</b></span>
+      </div>
+    </div>
+
+    <p class="warn" id="warn" role="status"></p>
+
+    <div class="pad" id="pad" aria-label="Move">
+      <button class="up" data-dir="up" aria-label="Up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+      <button class="left" data-dir="left" aria-label="Left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" style="transform:rotate(-90deg)"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+      <button class="down" data-dir="down" aria-label="Down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" style="transform:rotate(180deg)"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+      <button class="right" data-dir="right" aria-label="Right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" style="transform:rotate(90deg)"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+    </div>
+
+    <div class="hints" id="hints"></div>
+
+    <section class="result" id="result" aria-live="polite">
+      <h2 id="result-title"></h2>
+      <div class="big" id="result-big"></div>
+      <div class="stars" id="result-stars" aria-hidden="true"></div>
+      <p id="result-sub"></p>
+      <div class="actions">
+        <button class="btn" id="btn-share" type="button">Share</button>
+        <button class="btn primary" id="btn-next" type="button">Next maze</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="toast-host" id="toasts"></div>
+
+<dialog id="dlg-help"><div class="dlg">
+  <button class="btn close" onclick="this.closest('dialog').close()">Close</button>
+  <h2>How to play</h2>
+  <p>Get from the green start to the gold exit. Swipe on the maze, tap beside your explorer, use the arrow buttons or the arrow keys. You <b>run</b> down a corridor until you hit a junction, a dead end or the exit.</p>
+  <p>Easy is a 10×10 maze, fully visible, no clock. Normal is 15×15 against a countdown. Hard is 20×20 in the fog: you only see 3 steps down the corridors around you, the places you have been stay on the map, and the clock is tighter. The clock starts on your first move.</p>
+  <p>Stars come from your steps compared with par, the shortest way out (every step counts, backtracking too). A hint lights the next 8 steps of the right way from wherever you stand: 3 hints on Easy and Normal, 2 on Hard. Out of time or out of patience, you can give up and see the route.</p>
+</div></dialog>
+
+<script>
+/*SOUND*/
+/*ENGINE*/
+</script>
+<script>
+(function(){
+"use strict";
+var Eng = ZameEngine;
+function $(id){ return document.getElementById(id); }
+function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+var KEY_SAVE = "quinndom.zame.save", KEY_SESSION = "quinndom.zame.session", KEY_SETTINGS = "quinndom.zame.settings";
+
+/* ---------- public hooks for the app shell ---------- */
+var hooks = window.Zame = {
+  config: { maxHints: Eng.HINTS, bonusHints: 0, bonusSeconds: 0 },   // hints per maze; the Navigator and Engineer heroes add bonusHints / bonusSeconds (level 3: extra time)
+  getSave: function(){ return JSON.parse(JSON.stringify(save)); },
+  loadSave: function(s){ save = Eng.normaliseSave(s); store(KEY_SAVE, save); },
+  onFinish: function(info){}                     // { difficulty, index, won, steps, par, seconds, hints, stars }: the shell pays rewards here
+};
+var save = Eng.normaliseSave(load(KEY_SAVE, null));
+var settings = Object.assign({ difficulty:"easy", sfx:true, sfxSet:false, volume:0.7 }, load(KEY_SETTINGS, {}));
+if(!settings.sfxSet) settings.sfx = true;
+if(Eng.DIFFICULTIES.indexOf(settings.difficulty) < 0) settings.difficulty = "easy";
+
+function applySound(){ Sound.setConfig({ sfx: settings.sfx, volume: settings.volume }); $("btn-sound").setAttribute("aria-pressed", String(settings.sfx)); }
+function sfx(name){ try{ if(settings.sfx) Sound.play(name); }catch(e){} }
+
+/* ---------- state ---------- */
+var game = null, started = false, elapsed = 0, limit = 0, anim = null, giveUpTimer = null, lowWarned = {}, bumps = 0, frame = 0;
+function budget(){ return Eng.hintsAllowed(game.difficulty, hooks.config.bonusHints); }
+function persist(){ store(KEY_SESSION, { difficulty: game.difficulty, index: game.index, trail: game.trail, hints: game.hintsUsed, elapsed: Math.round(elapsed * 10) / 10, started: started, status: game.status }); }
+
+function startGame(difficulty, index, replay){
+  var g;
+  if(replay){
+    g = Eng.restore(difficulty, index, replay.trail || [], replay.hints);
+    if(g.status === "playing" && replay.status === "gaveup") Eng.giveUp(g);
+    if(g.status === "playing" && replay.status === "timeout") Eng.expire(g);
+    elapsed = replay.elapsed || 0; started = !!replay.started || g.steps > 0;
+  } else { g = Eng.newGame(difficulty, index); elapsed = 0; started = false; }
+  game = g; anim = null; lowWarned = {}; bumps = 0;
+  limit = Eng.timeLimit(difficulty, g.maze.par, hooks.config.bonusSeconds);
+  if(giveUpTimer){ clearTimeout(giveUpTimer); giveUpTimer = null; }
+  $("result").classList.remove("show"); clearWarn();
+  Eng.DIFFICULTIES.forEach(function(d){ $("d-" + d).setAttribute("aria-pressed", String(d === difficulty)); });
+  $("stat-par").textContent = g.maze.par;
+  persist(); layout(); renderHints(); renderStats(); draw();
+  if(g.status !== "playing") showResult(true);
+}
+function newMaze(){ startGame(settings.difficulty, save.completed[settings.difficulty] || 0); }
+
+/* ---------- drawing ---------- */
+var cv = $("cv"), ctx = cv.getContext("2d"), cs = 20, W = 10, H = 10;
+var INK = "#14261B", FLOOR = "#F7F0D8", GREEN = "#2E9B57", GOLD = "#F7C948", LEAF = "#7BC67A";
+function layout(){
+  var m = game.maze; W = m.w; H = m.h;
+  var wrap = $("boardwrap"), avail = Math.min(wrap.clientWidth - 8, Math.max(240, window.innerHeight * 0.62), 720);
+  cs = Math.max(10, Math.floor(avail / W));
+  var dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.style.width = cs * W + "px"; cv.style.height = cs * H + "px";
+  cv.width = Math.round(cs * W * dpr); cv.height = Math.round(cs * H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
+}
+function visibleSet(){ var s = {}; Eng.visibleCells(game).forEach(function(c){ s[c] = true; }); return s; }
+function cellXY(c){ return [c % W, Math.floor(c / W)]; }
+function draw(){
+  var g = game, m = g.maze, fog = Eng.VIEW[g.difficulty] > 0, vis = fog ? visibleSet() : null, t = Math.max(2, Math.round(cs * 0.14)), c, x, y, ov = g.status !== "playing";
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, cs * W, cs * H);
+  var showAll = ov;                                        // after the game ends the whole maze is shown
+  for(c = 0; c < W * H; c++){
+    var known = showAll || !fog || g.explored[c]; if(!known) continue;
+    x = c % W; y = Math.floor(c / W);
+    ctx.fillStyle = FLOOR; ctx.fillRect(x * cs, y * cs, cs, cs);
+    if(fog && !showAll && !vis[c]){ ctx.fillStyle = "rgba(20,38,27,.32)"; ctx.fillRect(x * cs, y * cs, cs, cs); }
+  }
+  // trail
+  ctx.fillStyle = LEAF; var d = Math.max(3, Math.round(cs * 0.28));
+  g.trail.forEach(function(tc, i){ var p = cellXY(tc); ctx.fillRect(Math.round(p[0] * cs + (cs - d) / 2), Math.round(p[1] * cs + (cs - d) / 2), d, d); });
+  // solution after a loss
+  if(ov && g.status !== "won"){ ctx.fillStyle = GOLD; var dd = Math.max(3, Math.round(cs * 0.3)); Eng.solution(g).forEach(function(sc){ var p = cellXY(sc); ctx.fillRect(Math.round(p[0] * cs + (cs - dd) / 2), Math.round(p[1] * cs + (cs - dd) / 2), dd, dd); }); }
+  // hint cells (pulse)
+  if(g.hintCells.length){
+    var pulse = 0.6 + 0.4 * Math.sin(frame / 8); ctx.fillStyle = "rgba(247,201,72," + pulse.toFixed(2) + ")"; var hd = Math.max(5, Math.round(cs * 0.48));
+    g.hintCells.forEach(function(hc){ var p = cellXY(hc); ctx.fillRect(Math.round(p[0] * cs + (cs - hd) / 2), Math.round(p[1] * cs + (cs - hd) / 2), hd, hd); });
+  }
+  // start and exit
+  mark(m.start, GREEN, "S"); mark(m.exit, GOLD, "★");
+  // walls of known cells
+  ctx.fillStyle = INK;
+  for(c = 0; c < W * H; c++){
+    if(!(showAll || !fog || g.explored[c])) continue;
+    x = c % W; y = Math.floor(c / W); var b = m.cells[c];
+    if(!(b & Eng.N)) ctx.fillRect(x * cs - Math.floor(t / 2), y * cs - Math.floor(t / 2), cs + t, t);
+    if(!(b & Eng.W)) ctx.fillRect(x * cs - Math.floor(t / 2), y * cs - Math.floor(t / 2), t, cs + t);
+    if(!(b & Eng.S)) ctx.fillRect(x * cs - Math.floor(t / 2), (y + 1) * cs - Math.floor(t / 2), cs + t, t);
+    if(!(b & Eng.E)) ctx.fillRect((x + 1) * cs - Math.floor(t / 2), y * cs - Math.floor(t / 2), t, cs + t);
+  }
+  // player
+  var pp = playerXY(); player(pp[0], pp[1]);
+}
+function mark(c, col, ch){
+  var p = cellXY(c), m = Math.max(2, Math.round(cs * 0.16)), s = cs - 2 * m;
+  ctx.fillStyle = col; ctx.fillRect(p[0] * cs + m, p[1] * cs + m, s, s);
+  ctx.fillStyle = INK; ctx.font = Math.max(9, Math.round(cs * 0.62)) + "px VT323, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(ch, p[0] * cs + cs / 2, p[1] * cs + cs / 2 + 1);
+}
+function player(px, py){
+  var s = Math.max(6, Math.round(cs * 0.62)), x = Math.round(px * cs + (cs - s) / 2), y = Math.round(py * cs + (cs - s) / 2), e = Math.max(1, Math.round(s * 0.16));
+  ctx.fillStyle = INK; ctx.fillRect(x - 1, y - 1, s + 2, s + 2);
+  ctx.fillStyle = "#237A43"; ctx.fillRect(x, y, s, s);
+  ctx.fillStyle = "#fff"; ctx.fillRect(x + Math.round(s * 0.22), y + Math.round(s * 0.28), e * 2, e * 2); ctx.fillRect(x + Math.round(s * 0.58), y + Math.round(s * 0.28), e * 2, e * 2);
+  ctx.fillStyle = INK; ctx.fillRect(x + Math.round(s * 0.3), y + Math.round(s * 0.34), e, e); ctx.fillRect(x + Math.round(s * 0.66), y + Math.round(s * 0.34), e, e);
+}
+function playerXY(){
+  if(!anim) return cellXY(game.pos);
+  var now = performance.now(), k = (now - anim.t0) / anim.per, i = Math.floor(k);
+  if(i >= anim.cells.length - 1){ anim = null; return cellXY(game.pos); }
+  var a = cellXY(anim.cells[i]), b = cellXY(anim.cells[i + 1]), f = k - i;
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+function loop(){ frame++; if(anim || game.hintCells.length) draw(); requestAnimationFrame(loop); }
+
+/* ---------- moving ---------- */
+var WALL_JOKES = ["That's a wall. Walls are famously solid.", "The maze says no.", "You cannot tunnel. We checked.", "Ow. Right into the wall.", "Have you tried not walking into the wall?", "Bonk."];
+function bump(){
+  bumps++; sfx("miss");
+  var b = $("board"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+  if(bumps % 2 === 1) showWarn(WALL_JOKES[Math.floor(bumps / 2) % WALL_JOKES.length]);
+}
+function go(dir){
+  if(game.status !== "playing" || anim) return;
+  var from = game.pos, r = Eng.run(game, dir);
+  if(!r.ok){ bump(); return; }
+  clearWarn(); bumps = 0;
+  if(!started){ started = true; }
+  var cells = [from].concat(r.cells), per = Math.min(45, 520 / r.cells.length);
+  anim = { cells: cells, t0: performance.now(), per: per };
+  sfx("tap"); persist(); renderStats(); renderHints(); draw();
+  if(game.status === "won") setTimeout(function(){ finish(); }, per * r.cells.length + 150);
+}
+var KEYS = { ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right", w:"up", s:"down", a:"left", d:"right", W:"up", S:"down", A:"left", D:"right" };
+document.addEventListener("keydown", function(e){ if(e.target.closest && e.target.closest("dialog")) return; var d = KEYS[e.key]; if(d){ e.preventDefault(); go(d); } });
+$("pad").addEventListener("pointerdown", function(e){ var b = e.target.closest("button"); if(b){ e.preventDefault(); go(b.getAttribute("data-dir")); } });
+// swipe on the maze, or tap beside the explorer
+var ptr = null;
+cv.addEventListener("pointerdown", function(e){ ptr = { x: e.clientX, y: e.clientY }; try{ cv.setPointerCapture(e.pointerId); }catch(_){} });
+cv.addEventListener("pointerup", function(e){
+  if(!ptr) return; var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr = null;
+  if(Math.max(Math.abs(dx), Math.abs(dy)) > 22){ go(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up")); return; }
+  var r = cv.getBoundingClientRect(), p = cellXY(game.pos), tx = (e.clientX - r.left) - (p[0] + 0.5) * cs, ty = (e.clientY - r.top) - (p[1] + 0.5) * cs;
+  if(Math.abs(tx) < cs * 0.5 && Math.abs(ty) < cs * 0.5) return;
+  go(Math.abs(tx) > Math.abs(ty) ? (tx > 0 ? "right" : "left") : (ty > 0 ? "down" : "up"));
+});
+cv.addEventListener("pointercancel", function(){ ptr = null; });
+
+/* ---------- hints, give up ---------- */
+function useHint(){
+  var r = Eng.hint(game, hooks.config.bonusHints);
+  if(!r.ok){ toast(r.error); return; }
+  sfx("collect"); persist(); renderHints(); draw();
+}
+function giveUp(){
+  var b = $("btn-giveup");
+  if(!giveUpTimer){ b.textContent = "Sure? Tap again to reveal"; giveUpTimer = setTimeout(function(){ giveUpTimer = null; if(game.status === "playing") renderHints(); }, 3500); return; }
+  clearTimeout(giveUpTimer); giveUpTimer = null; Eng.giveUp(game); finish();
+}
+function renderHints(){
+  var left = budget() - game.hintsUsed, html = "";
+  if(game.hintCells.length) html += '<span class="chip">Follow the glowing dots</span>';
+  if(game.status === "playing"){
+    html += '<button class="btn small" id="btn-hint"' + (left <= 0 ? " disabled" : "") + '>Hint (' + Math.max(0, left) + ' left)</button><button class="linkbtn warnbtn" id="btn-giveup" type="button">Give up</button>';
+  }
+  $("hints").innerHTML = html;
+  if($("btn-hint")) $("btn-hint").onclick = useHint;
+  if($("btn-giveup")) $("btn-giveup").onclick = giveUp;
+}
+
+/* ---------- clock ---------- */
+function renderStats(){
+  $("stat-steps").textContent = game.steps;
+  var tl = $("timer"), shown = limit ? Math.max(0, limit - elapsed) : elapsed;
+  $("timer-l").textContent = limit ? "Time left" : "Time"; $("stat-time").textContent = Eng.formatTime(limit ? Math.ceil(shown) : Math.floor(shown));
+  tl.classList.toggle("low", !!limit && game.status === "playing" && shown <= 15);
+}
+var last = performance.now();
+setInterval(function(){
+  var now = performance.now(), dt = Math.min(1, (now - last) / 1000); last = now;
+  if(!game || game.status !== "playing" || !started || document.visibilityState !== "visible" || $("dlg-help").open) return;
+  elapsed += dt;
+  if(limit){
+    var left = limit - elapsed;
+    if(left <= 30 && !lowWarned[30]){ lowWarned[30] = true; toast("30 seconds. The Minotaur is getting hungry."); }
+    if(left <= 10 && !lowWarned[10]){ lowWarned[10] = true; toast("10 seconds. Run, explorer, run!"); }
+    if(left <= 0){ Eng.expire(game); finish(); return; }
+  }
+  renderStats();
+  if(Math.floor(elapsed) % 5 === 0) persist();
+}, 250);
+
+/* ---------- finish ---------- */
+function finish(){
+  if(giveUpTimer){ clearTimeout(giveUpTimer); giveUpTimer = null; }
+  var won = game.status === "won"; anim = null;
+  setTimeout(function(){ sfx(won ? "hit" : "notquite"); if(won) setTimeout(function(){ sfx("solved"); }, 600); }, 100);
+  Eng.recordCompleted(save, game.difficulty); store(KEY_SAVE, save);
+  persist(); renderStats(); renderHints(); draw(); showResult(false);
+  try{ hooks.onFinish({ difficulty: game.difficulty, index: game.index, won: won, steps: game.steps, par: game.maze.par, seconds: Math.round(elapsed), hints: game.hintsUsed, stars: Eng.stars(game) }); }catch(e){}
+}
+var WIN_LINES = { 3: ["The Minotaur has filed a complaint.", "Straight out like you drew the maze."], 2: ["Out, with a scenic detour.", "Nice. A few dead ends were sampled."], 1: ["Out! Eventually. That counts.", "Slow and wall-bumping wins the race."] };
+function showResult(restored){
+  var g = game, won = g.status === "won", s = Eng.stars(g), pick = function(a){ return a[Math.floor(Math.random() * a.length)]; };
+  $("result-title").textContent = won ? pick(WIN_LINES[s]) : g.status === "timeout" ? "Time's up. The Minotaur says hi." : "The way out is shown in gold.";
+  $("result-big").textContent = g.steps + " steps · par " + g.maze.par;
+  $("result-stars").textContent = won ? "★".repeat(s) + "☆".repeat(3 - s) : "";
+  $("result-sub").textContent = Eng.formatTime(elapsed) + (limit ? " of " + Eng.formatTime(limit) : "") + (g.hintsUsed ? " · " + g.hintsUsed + (g.hintsUsed === 1 ? " hint" : " hints") : " · no hints");
+  $("btn-share").style.display = won ? "" : "none";
+  $("result").classList.add("show");
+}
+
+/* ---------- messages ---------- */
+function showWarn(msg){ var w = $("warn"); w.textContent = msg; w.classList.remove("show"); void w.offsetWidth; w.classList.add("show"); }
+function clearWarn(){ $("warn").textContent = ""; }
+function toast(msg){ var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; $("toasts").appendChild(t); setTimeout(function(){ t.remove(); }, 2400); }
+
+/* ---------- wiring ---------- */
+$("btn-next").onclick = function(){ sfx("tap"); newMaze(); };
+Eng.DIFFICULTIES.forEach(function(d){ $("d-" + d).onclick = function(){ if(d === settings.difficulty) return; settings.difficulty = d; store(KEY_SETTINGS, settings); newMaze(); }; });
+$("btn-help").onclick = function(){ $("dlg-help").showModal(); };
+$("btn-sound").onclick = function(){ settings.sfx = !settings.sfx; settings.sfxSet = true; store(KEY_SETTINGS, settings); applySound(); if(settings.sfx) Sound.play("collect"); };
+$("btn-share").onclick = function(){
+  var text = Eng.shareText(game, elapsed);
+  if(navigator.share){ navigator.share({ text: text }).catch(function(){}); return; }
+  try{ navigator.clipboard.writeText(text).then(function(){ toast("Copied to clipboard"); }, function(){ toast("Could not copy"); }); }catch(e){ toast("Could not copy"); }
+};
+document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
+document.addEventListener("visibilitychange", function(){ last = performance.now(); if(document.visibilityState === "hidden" && game) persist(); });
+window.addEventListener("resize", function(){ layout(); draw(); });
+
+/* ---------- boot ---------- */
+applySound();
+var sess = load(KEY_SESSION, null);
+if(sess && Eng.DIFFICULTIES.indexOf(sess.difficulty) >= 0 && typeof sess.index === "number" && Array.isArray(sess.trail)){ settings.difficulty = sess.difficulty; startGame(sess.difficulty, sess.index, sess); }
+else { newMaze(); }
+requestAnimationFrame(loop);
+window.addEventListener("load", function(){ layout(); draw(); });
+})();
+</script>
+</body>
+</html>
