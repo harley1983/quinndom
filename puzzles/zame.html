@@ -102,6 +102,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
 .dlg p{margin:0 0 10px;line-height:1.45}
 .dlg .close{float:right}
 @media (prefers-reduced-motion:reduce){.board.shake,.warn.show,.hints .chip,.timer.low b{animation:none}}
+
+body.locked .seg,body.locked #btn-next,body.locked #btn-sort,body.locked .listbar{display:none!important}
+body.locked .controls{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -611,6 +614,10 @@ var hooks = window.Zame = {
   config: { maxHints: Eng.HINTS, bonusHints: 0, bonusSeconds: 0 },   // hints per maze; the Navigator and Engineer heroes add bonusHints / bonusSeconds (level 3: extra time)
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },
   loadSave: function(s){ save = Eng.normaliseSave(s); store(KEY_SAVE, save); },
+  start: function(o){                            // shell hook: launch a specific maze, e.g. a boss fight. o = { difficulty, index, locked }
+    o = o || {}; var d = Eng.DIFFICULTIES.indexOf(o.difficulty) >= 0 ? o.difficulty : settings.difficulty;
+    settings.difficulty = d; store(KEY_SETTINGS, settings); startGame(d, typeof o.index === 'number' ? o.index : (save.completed[d] || 0)); document.body.classList.toggle("locked", !!o.locked);
+  },
   onFinish: function(info){}                     // { difficulty, index, won, steps, par, seconds, hints, stars }: the shell pays rewards here
 };
 var save = Eng.normaliseSave(load(KEY_SAVE, null));
@@ -831,6 +838,7 @@ $("btn-share").onclick = function(){
 document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
 document.addEventListener("visibilitychange", function(){ last = performance.now(); if(document.visibilityState === "hidden" && game) persist(); });
 window.addEventListener("resize", function(){ layout(); draw(); });
+
 
 /* ---------- boot ---------- */
 applySound();

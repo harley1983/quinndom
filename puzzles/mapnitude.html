@@ -163,6 +163,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
 .dlg p{margin:0 0 10px;line-height:1.45}
 .dlg .close{float:right}
 @media (prefers-reduced-motion:reduce){.rr.filled,.mpin.drop svg,.hintnote{animation:none}}
+
+body.locked .seg,body.locked #btn-next,body.locked #btn-sort,body.locked .listbar{display:none!important}
+body.locked .controls{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -1133,6 +1136,10 @@ var hooks = window.Mapnitude = {
   config: { maxHints: E.HINTS, bonusHints: 0, passPercent: E.PASS_PERCENT },   // hints per game; a hero can add bonusHints
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },
   loadSave: function(s){ save = E.normaliseSave(s); store(KEY_SAVE, save); },
+  start: function(o){                            // shell hook: launch a specific game, e.g. a boss fight. o = { difficulty, index, locked }
+    o = o || {}; var d = E.DIFFICULTIES.indexOf(o.difficulty) >= 0 ? o.difficulty : settings.difficulty;
+    settings.difficulty = d; store(KEY_SETTINGS, settings); startGame(d, typeof o.index === 'number' ? o.index : (save.completed[d] || 0)); document.body.classList.toggle("locked", !!o.locked);
+  },
   onFinish: function(info){}                     // { difficulty, index, won, score, max, rounds, hints }: the shell pays rewards here
 };
 var save = E.normaliseSave(load(KEY_SAVE, null));
@@ -1333,6 +1340,7 @@ $("btn-share").onclick = function(){
   try{ navigator.clipboard.writeText(text).then(function(){ toast("Copied to clipboard"); }, function(){ toast("Could not copy"); }); }catch(e){ toast("Could not copy"); }
 };
 document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
+
 
 /* ---------- boot ---------- */
 applySound();

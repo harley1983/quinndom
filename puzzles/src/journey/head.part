@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Journey · QuinnDom</title>
+<style>
+/*FONTS*/
+:root{
+  --forest:#1B5E20; --canopy:#237A43; --leaf:#7BC67A; --moss:#4A7C59; --sky:#3A7BD5;
+  --harbour:#1D3557; --sun:#F7C948; --honey:#E9C46A; --brass:#C9A227; --sand:#E9D8A6; --mist:#F3F7EA;
+  --ink:#14261B; --clay:#C8693D;
+  --ramp:linear-gradient(90deg,#3182BD,#91BFDB,#FEE090,#FC8D59,#D73027,#7F0000);  /* far (blue) to near (dark red) */
+  --sea:#9CCBE8; --land:#EEE9C4; --paper:#FBF7EA; --red:#C0392B; --brown:#14261B;
+  --font-head:"Space Grotesk",system-ui,sans-serif; --font-body:"Nunito Sans",system-ui,sans-serif; --font-pixel:"VT323",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--mist);color:var(--ink);font-family:var(--font-body);font-size:16px;display:flex;flex-direction:column;min-height:100dvh;-webkit-tap-highlight-color:transparent;
+  background-image:radial-gradient(circle at 1px 1px,rgba(35,122,67,.07) 1px,transparent 0);background-size:18px 18px}
+button{font-family:inherit;color:inherit}
+
+header{background:var(--harbour);color:var(--mist);border-bottom:4px solid var(--brass)}
+.bar{max-width:1080px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.brand{display:flex;flex-direction:column;line-height:1}
+.brand h1{margin:0;font-family:var(--font-head);font-weight:700;font-size:26px;letter-spacing:.5px}
+.brand small{font-family:var(--font-pixel);font-size:17px;color:var(--honey);letter-spacing:1px;margin-top:2px}
+.spacer{flex:1}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:2px solid rgba(243,247,234,.35);background:transparent;color:var(--mist);display:grid;place-items:center;cursor:pointer}
+.icon-btn:hover{background:rgba(243,247,234,.12)}
+.icon-btn:focus-visible,.btn:focus-visible,.seg button:focus-visible,.sugg button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn .off{display:none}
+.icon-btn[aria-pressed="false"] .on{display:none}
+.icon-btn[aria-pressed="false"] .off{display:block}
+
+main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:12px 14px 18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-content:start}
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (min-width:900px){
+  main{grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);gap:18px;padding-top:18px}
+  .stage{position:sticky;top:14px;align-self:start}
+  .mapwrap{height:min(620px,calc(100dvh - 140px))!important}
+}
+
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.seg{display:inline-flex;background:#fff;border:2px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:0 3px 0 rgba(20,38,27,.9)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-family:var(--font-head);font-weight:700;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--canopy);color:#fff}
+.stats{display:flex;gap:14px;font-family:var(--font-pixel);font-size:22px;line-height:1;color:var(--forest)}
+.stats span b{font-weight:400;color:var(--ink)}
+.stats i{font-style:normal;font-family:var(--font-body);font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--moss);display:block;margin-bottom:2px}
+

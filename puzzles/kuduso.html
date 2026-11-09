@@ -134,6 +134,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
   .stage{align-items:flex-start}
 }
 @media (prefers-reduced-motion:reduce){.cell.pop,.cell.flash,.cell.win{animation:none}}
+
+body.locked .seg,body.locked #btn-next,body.locked #btn-sort,body.locked .listbar{display:none!important}
+body.locked .controls{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -659,6 +662,10 @@ var hooks = window.Kuduso = {
   config: { maxHints: { easy: 3, normal: 3, hard: 2 }, bonusHints: 0 },   // hints per puzzle; the Engineer hero adds bonusHints
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },
   loadSave: function(s){ save = Eng.normaliseSave(s); store(KEY_SAVE, save); refreshStats(); },
+  start: function(o){                              // shell hook: launch a specific puzzle, e.g. a boss fight. o = { difficulty, index, locked }
+    o = o || {}; var d = Eng.DIFFICULTIES.indexOf(o.difficulty) >= 0 ? o.difficulty : settings.difficulty;
+    startGame(d, typeof o.index === 'number' ? o.index : save.completed[d]); document.body.classList.toggle("locked", !!o.locked);
+  },
   onFinish: function(info){}                       // { difficulty, index, won, seconds, mistakes, hints }: the shell pays rewards here
 };
 
@@ -860,6 +867,7 @@ document.addEventListener("keydown", function(e){
 });
 document.addEventListener("visibilitychange", function(){ if(game) persist(); });
 document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
+
 
 /* ---------- boot ---------- */
 applySound(); buildBoard(); buildPad();

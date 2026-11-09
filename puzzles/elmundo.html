@@ -157,6 +157,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
 .swatches div{display:flex;align-items:center;gap:10px;font-size:15px}
 .swatches i{display:block;width:34px;height:18px;border:2px solid var(--ink);border-radius:4px}
 @media (prefers-reduced-motion:reduce){.g.filled,.mpin.drop svg,.warn.show,.shake,.hints .chip{animation:none}}
+
+body.locked .seg,body.locked #btn-next,body.locked #btn-sort,body.locked .listbar{display:none!important}
+body.locked .controls{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -1067,6 +1070,12 @@ var hooks = window.ElMundo = {
   config: { maxHints: { easy: 3, normal: 3, hard: 2 }, bonusHints: 0 },   // hints per puzzle; the Navigator hero adds bonusHints. Text hints and map-click name peeks share the budget
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },
   loadSave: function(s){ save = Eng.normaliseSave(s, DATA); store(KEY_SAVE, save); refreshStats(); },
+  start: function(o){                            // shell hook: launch a specific country, e.g. a boss fight. o = { difficulty, index, locked }
+    o = o || {}; var d = Eng.DIFFICULTIES.indexOf(o.difficulty) >= 0 ? o.difficulty : settings.difficulty, list = pools[d];
+    settings.difficulty = d; store(KEY_SETTINGS, settings);
+    startGame(typeof o.index === 'number' ? list[o.index % list.length] : Eng.nextAnswer(list, save.completed));
+    $('result').classList.remove('show'); $('entry').classList.remove('hidden'); $('guess-input').value = ''; renderSugg(); clearWarn(); document.body.classList.toggle("locked", !!o.locked);
+  },
   onFinish: function(info){}                     // { difficulty, code, won, guesses, hints }: the shell pays rewards here
 };
 
@@ -1268,6 +1277,7 @@ $("btn-share").onclick = function(){
   try{ navigator.clipboard.writeText(text).then(function(){ toast("Copied to clipboard"); }, function(){ toast("Could not copy"); }); }catch(e){ toast("Could not copy"); }
 };
 document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
+
 
 /* ---------- boot ---------- */
 applySound();

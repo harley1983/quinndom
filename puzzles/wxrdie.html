@@ -157,6 +157,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
 .switch input:checked + span::after{transform:translateX(22px)}
 .switch input:focus-visible + span{outline:3px solid var(--sun); outline-offset:2px}
 .switch input:disabled{cursor:not-allowed} .switch input:disabled + span{opacity:.5}
+
+body.locked .seg,body.locked #btn-next,body.locked #btn-sort,body.locked .listbar{display:none!important}
+body.locked .controls{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -770,6 +773,11 @@ document.querySelectorAll("dialog").forEach(function(d){
 window.Wxrdie = {
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },          // goes into the shared save file
   loadSave: function(s){ save = E.normaliseSave(s); persistSave(); showMode(); },
+  start: function(o){                                                        // shell hook: launch a specific word, e.g. a boss fight. opts = { difficulty, index }
+    o = o || {}; document.body.classList.toggle("locked", !!o.locked); var m = o.difficulty === "hard" ? 6 : 5; if(busy) busy = false; mode = m; persistSession();
+    var list = WORDS.answers[m], g = E.newGame(m, typeof o.index === "number" ? list[o.index % list.length] : E.nextAnswer(list, save.completed[String(m)])); g.typed = "";
+    session.games[m] = g; persistSession(); showMode();
+  },
   onFinish: null                                                              // shell sets: function({mode, word, won, guesses}){ ...rewards... }
 };
 

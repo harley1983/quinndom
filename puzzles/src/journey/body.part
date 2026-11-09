@@ -1,0 +1,76 @@
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><h1>Journey</h1><small>QUINNDOM PROTOTYPE</small></div>
+    <div class="spacer"></div>
+    <span class="pill" title="Day" style="color:var(--mist);background:transparent;border-color:rgba(243,247,234,.35);box-shadow:none"><small style="color:var(--honey)">Day</small><span id="day">1</span></span>
+    <button class="icon-btn" id="btn-tools" aria-label="Prototype tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></button>
+    <button class="icon-btn" id="btn-sound" aria-label="Sound effects" aria-pressed="true">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-help" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8"/><path d="M12 17h.01"/></svg></button>
+  </div>
+</header>
+
+<div class="hud"><div class="hudin">
+  <div class="res" id="res"></div>
+  <div class="row2">
+    <div class="hp" id="hp" title="Army health"><i id="hp-i"></i><span id="hp-t"></span></div>
+    <div class="pill" title="March points: one per step on the road"><small>March</small><span id="march">0</span></div>
+    <div class="pill" title="Credit score: building values"><small>Credit</small><span id="credit">0</span></div>
+  </div>
+</div></div>
+
+<main>
+  <div class="tabs"><div class="seg" role="group" aria-label="Screens">
+    <button id="t-city" data-v="city" aria-pressed="true">City</button><button id="t-road" data-v="road" aria-pressed="false">Road</button><button id="t-army" data-v="army" aria-pressed="false">Army</button>
+  </div></div>
+
+  <section class="view show" id="v-city">
+    <div class="scene"><canvas id="cityCv" aria-label="Your city. Tap a plot to jump to its building card."></canvas></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="view" id="v-road">
+    <div class="region"><span>Region 1 · Mekong and the islands</span><small id="prog">node 0 / 20</small></div>
+    <div class="scene roadwrap"><canvas id="roadCv" aria-label="The winding road. Your heroes stand on the current node."></canvas></div>
+    <div class="card here" id="here"></div>
+  </section>
+
+  <section class="view" id="v-army"></section>
+</main>
+
+<div class="toast-host" id="toasts"></div>
+
+<dialog id="dlg"><div class="dlg"><h2 id="pop-title"></h2><div id="pop-body"></div><div class="acts" id="pop-actions"></div></div></dialog>
+
+<dialog id="dlg-help"><div class="dlg">
+  <h2>How Journey works</h2>
+  <p><b>City.</b> Build and upgrade. Five buildings unlock a puzzle at level 2: Bamboo home (El Mundo), Timber grove (Wxrdie), Quarry (Mapnitude), Mycelium lab (Kuduso) and Solar array (Zame). Solving a puzzle pays the city and gives one march point. Each puzzle pays once a day.</p>
+  <p><b>Army.</b> The army is your heroes' health. It grows with troops (Food), your Credit score and how well your citizens are housed. Fights drain it. The Hospital heals it with one short rest. Nothing is ever lost.</p>
+  <p><b>Road.</b> Spend a march point to move one step. Crates hold Mimosa, Psilocybe and other items. Creatures, enemy armies and mini-bosses are fought automatically from army strength: check the odds first. Each region ends with a big boss, and the boss fight is a real puzzle.</p>
+  <p>This is a prototype: use the gear icon to skip to the next day or top up resources.</p>
+  <div class="acts"><button class="btn primary" onclick="this.closest('dialog').close()">Got it</button></div>
+</div></dialog>
+
+<dialog id="dlg-tools"><div class="dlg">
+  <h2>Prototype tools</h2>
+  <p>Not part of the game: for testing the loop.</p>
+  <div class="acts" style="justify-content:flex-start">
+    <button class="btn" id="tool-day">Next day</button><button class="btn" id="tool-res">+100 resources</button><button class="btn" id="tool-hp">Hurt army</button><button class="btn danger" id="tool-reset">Reset save</button>
+  </div>
+  <div class="acts"><button class="btn primary" onclick="this.closest('dialog').close()">Close</button></div>
+</div></dialog>
+
+<div class="fightov" id="fightov"><div class="card"><h2 id="f-title"></h2><canvas id="fightCv" width="150" height="60"></canvas><div class="fres" id="f-res"></div><div class="acts" style="display:flex;justify-content:flex-end"><button class="btn primary" id="f-ok" style="display:none">Continue</button></div></div></div>
+
+<div class="overlay" id="overlay">
+  <div class="ovbar"><h2 id="ov-title"></h2><span class="clock" id="ov-clock"></span><button class="btn small" id="ov-close">Close</button></div>
+  <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0" id="ov-body"><div class="ovres" id="ov-res"><div class="card" id="ov-card"></div></div></div>
+</div>
+
+<script>
+/*SOUND*/
+/*ENGINE*/
+</script>
