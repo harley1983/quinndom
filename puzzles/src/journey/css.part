@@ -42,7 +42,7 @@ main{display:block;max-width:1080px;padding:10px 14px 28px}
 .scene{border:3px solid var(--ink);border-radius:6px;box-shadow:0 5px 0 rgba(20,38,27,.9);overflow:hidden;line-height:0;background:#8EC5FC}
 .scene canvas{display:block;width:100%;image-rendering:pixelated;cursor:pointer}
 .roadwrap{position:relative}
-.roadwrap canvas{height:228px;cursor:default}
+.roadwrap canvas{height:380px;cursor:default;touch-action:none;background:#27422D}.mapbtn{position:absolute;top:8px;right:8px;line-height:1.2}.rdact{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);line-height:1.2;max-width:92%;z-index:2}#dlg-map{max-width:min(440px,94vw);padding:10px}.mapbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}.mapbar .note{flex:1;font-size:12px}#mapCv{display:block;border:2px solid var(--ink);border-radius:8px;image-rendering:pixelated;margin:0 auto}
 .region{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px;font-family:var(--font-head);font-weight:700}
 .region small{font:20px var(--font-pixel);color:var(--forest)}
 .here{margin-top:12px;display:flex;flex-direction:column;gap:8px}
@@ -84,7 +84,7 @@ dialog::backdrop{background:rgba(29,53,87,.6)}
 .fightov.show{display:flex}.fightov .card{max-width:460px;width:100%;display:flex;flex-direction:column;gap:10px}
 .fightov canvas{width:100%;height:auto;image-rendering:pixelated;background:linear-gradient(#8EC5FC,#CFE9FF 60%,#6CC36C 60%);border:3px solid var(--ink);border-radius:6px}
 .fres{min-height:64px}
-@media (min-width:900px){.roadwrap canvas{height:300px}}
+
 @media (prefers-reduced-motion:reduce){.rc.flash,.bcard.hi,.hp.hurt,.toast{animation:none}}
 </style>
 </head>

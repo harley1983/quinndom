@@ -17,7 +17,7 @@
   <div class="res" id="res"></div>
   <div class="row2">
     <div class="hp" id="hp" title="Army health"><i id="hp-i"></i><span id="hp-t"></span></div>
-    <div class="pill" title="March points: one per step on the road"><small>March</small><span id="march">0</span></div>
+    <div class="pill" title="Energy: one per new stage on the road"><small>Energy</small><span id="march">0</span></div>
     <div class="pill" title="Credit score: building values"><small>Credit</small><span id="credit">0</span></div>
   </div>
 </div></div>
@@ -34,9 +34,11 @@
 
   <section class="view" id="v-road">
     <div class="region"><span>Region 1 · Mekong and the islands</span><small id="prog">node 0 / 20</small></div>
-    <div class="scene roadwrap"><canvas id="roadCv" aria-label="The winding road. Your heroes stand on the current node."></canvas></div>
+    <div class="scene roadwrap"><canvas id="roadCv" aria-label="The winding road. Drag to walk your heroes along it."></canvas><button class="btn small mapbtn" id="rd-map" type="button">Map</button><button class="btn primary rdact" id="rdAct" type="button" hidden></button></div>
     <div class="card here" id="here"></div>
   </section>
+
+  <dialog id="dlg-map"><div class="mapbar"><b>Stage map</b><span class="note">Tap a reached stage to travel</span><button class="btn small" id="map-close" type="button">Close</button></div><canvas id="mapCv"></canvas></dialog>
 
   <section class="view" id="v-army"></section>
 </main>
@@ -47,9 +49,9 @@
 
 <dialog id="dlg-help"><div class="dlg">
   <h2>How Journey works</h2>
-  <p><b>City.</b> Build and upgrade. Five buildings unlock a puzzle at level 2: Bamboo home (El Mundo), Timber grove (Wxrdie), Quarry (Mapnitude), Mycelium lab (Kuduso) and Solar array (Zame). Solving a puzzle pays the city and gives one march point. Each puzzle pays once a day.</p>
+  <p><b>City.</b> Build and upgrade. Five buildings unlock a puzzle at level 2: Bamboo home (El Mundo), Timber grove (Wxrdie), Quarry (Mapnitude), Mycelium lab (Kuduso) and Solar array (Zame). Solving a puzzle pays the city and gives one energy. Each puzzle pays once a day.</p>
   <p><b>Army.</b> The army is your heroes' health. It grows with troops (Food), your Credit score and how well your citizens are housed. Fights drain it. The Hospital heals it with one short rest. Nothing is ever lost.</p>
-  <p><b>Road.</b> Spend a march point to move one step. Crates hold Mimosa, Psilocybe and other items. Creatures, enemy armies and mini-bosses are fought automatically from army strength: check the odds first. Each region ends with a big boss, and the boss fight is a real puzzle.</p>
+  <p><b>Road.</b> Drag on the road (or use the arrow keys) to walk your heroes through the region. Reaching each new stage costs 1 energy; walking back is free. The Map button shows every stage and lets you travel back to ones you have reached. Crates hold Mimosa, Psilocybe and other items. Creatures, enemy armies and mini-bosses are fought automatically from army strength: check the odds first. Each region ends with a big boss, and the boss fight is a real puzzle.</p>
   <p>This is a prototype: use the gear icon to skip to the next day or top up resources.</p>
   <div class="acts"><button class="btn primary" onclick="this.closest('dialog').close()">Got it</button></div>
 </div></dialog>

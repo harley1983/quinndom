@@ -185,85 +185,178 @@ $("v-army").addEventListener("click", function(e){
   if(!r.ok){ toast(r.error); sfx("notquite"); return; } if(a !== "rest") sfx(a === "hero" ? "milestone" : "collect"); persist(); renderAll();
 });
 
-/* ================= ROAD ================= */
-var NODE_DX = 34, WORLD_W = 26 + 20 * NODE_DX + 36, VIEW_H = 76;
-function nodeX(i){ return 26 + i * NODE_DX; }
-function nodeY(i){ return 46 + Math.round(Math.sin(i * 0.8) * 13); }
-var tok = { x: nodeX(S.node), y: nodeY(S.node) }, cam = 0, roadMeta = null, moving = false;
+/* ================= ROAD: isometric free walk ================= */
+var TW = 22, TH = 11, SPEED = 62, WALK = 2.9;
+var REGION = { VN: { n: "Red River Delta", lv: "Easy", r: 1, b: "jungle" }, LA: { n: "Mekong Highlands", lv: "Easy", r: 2, b: "jungle" }, KH: { n: "Tonlé Sap Basin", lv: "Normal", r: 3, b: "jungle" },
+  TH: { n: "Chao Phraya Marshes", lv: "Normal", r: 4, b: "swamp" }, MY: { n: "Strait Jungles", lv: "Hard", r: 5, b: "swamp" }, ID: { n: "Ring of Fire Isles", lv: "Hard", r: 6, b: "volcano" } };
+var BIOME = { jungle: { a: "#6FBF6A", b: "#63B25F", rock: "#3F7A3F", bg: "#27422D" }, swamp: { a: "#6AA89A", b: "#5C9A8C", rock: "#33645B", bg: "#1D3735" }, volcano: { a: "#7C6757", b: "#6E5A4B", rock: "#3A2E28", bg: "#241716" } };
+var NP = J.ROAD.map(function(n, k){ return { x: 7 + 6.6 * k, y: 16 + 7.5 * Math.sin(k * 0.72) }; });
+var STAGE = (function(){ var cnt = {}, out = []; J.ROAD.forEach(function(n){ cnt[n.country] = (cnt[n.country] || 0) + 1; out.push(REGION[n.country].r + "-" + cnt[n.country]); }); return out; })();
+function near(x, y){
+  var best = 1e9, bp = 0;
+  for(var k = 0; k < NP.length - 1; k++){ var a = NP[k], b = NP[k + 1], dx = b.x - a.x, dy = b.y - a.y, t = ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy); t = t < 0 ? 0 : t > 1 ? 1 : t; var px = a.x + dx * t - x, py = a.y + dy * t - y, d = Math.sqrt(px * px + py * py); if(d < best){ best = d; bp = k + t; } }
+  return { d: best, p: bp };
+}
+function along(p){ var k = Math.min(NP.length - 2, Math.max(0, Math.floor(p))), t = p - k, a = NP[k], b = NP[k + 1]; return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+function hash(x, y){ var h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; return (h ^ (h >>> 13)) >>> 0; }
+var tcache = {};
+function tinfo(gx, gy){ var key = gx * 4096 + gy, c = tcache[key]; if(!c){ var n = near(gx, gy); c = tcache[key] = { d: n.d, p: n.p, h: hash(gx, gy) % 1000 }; } return c; }
+var pos = { x: NP[S.node].x, y: NP[S.node].y }, cam = null, keys = {}, joy = null, lastBand = -1, banner = { t: -9, text: "" }, lastAct = "", walkT = 0, hintOnce = {};
+function placeAt(k){ pos.x = NP[k].x; pos.y = NP[k].y; cam = null; lastBand = -1; }
+function canAdvance(){ return !S.rest && S.hp > 0 && !J.pending(S) && J.nodeAt(S.node).type !== "end" && S.march >= 1; }
+function limitP(){ return S.node + (canAdvance() ? 1 : 0); }
+function curP(){ return near(pos.x, pos.y).p; }
+function enemyPos(k){ return along(k + 0.16); }
+function tree(x, y, kind, h){
+  if(kind === "tree"){ R("#5A3A22", x - 1, y - 5, 2, 5); R("#237A43", x - 5, y - 9, 10, 4); R("#2E8B4E", x - 5, y - 14, 10, 6); R("#3FA55F", x - 3, y - 16, 6, 3); }
+  else if(kind === "dead"){ R("#4A3A33", x - 1, y - 13, 2, 13); R("#4A3A33", x - 5, y - 10, 4, 1); R("#4A3A33", x + 1, y - 8, 5, 1); R("#4A3A33", x - 3, y - 13, 1, 3); }
+  else if(kind === "spike"){ R("#2B2220", x - 3, y - 9, 6, 9); R("#443632", x - 2, y - 13, 4, 4); R("#E4572E", x - 5, y - 1, 10, 1); }
+  else { R("#7B8780", x - 5, y - 5, 10, 5); R("#A0AAA4", x - 4, y - 7, 6, 2); }
+}
+function tileDiamond(sx, sy, col){ g.fillStyle = col; g.beginPath(); g.moveTo(sx, sy - TH / 2 - 0.5); g.lineTo(sx + TW / 2 + 0.5, sy); g.lineTo(sx, sy + TH / 2 + 0.5); g.lineTo(sx - TW / 2 - 0.5, sy); g.closePath(); g.fill(); }
+function isoX(gx, gy){ return (gx - gy) * TW / 2; } function isoY(gx, gy){ return (gx + gy) * TH / 2; }
 function roadFrame(t){
-  var cv = $("roadCv"); if(!cv.offsetParent) return; var P = prep(cv, 1, 1, cv.clientHeight || 228); var k = P.h / VIEW_H; var dpr = P.c; void dpr;
-  var c = cv.getContext("2d"), dp = Math.min(3, window.devicePixelRatio || 1); c.setTransform(dp * k, 0, 0, dp * k, 0, 0); c.imageSmoothingEnabled = false; g = c; roadMeta = { k: k };
-  var viewW = P.w / k, tx = nodeX(S.node), ty = nodeY(S.node);
-  tok.x += (tx - tok.x) * 0.12; tok.y += (ty - tok.y) * 0.12; if(Math.abs(tx - tok.x) < 0.4 && Math.abs(ty - tok.y) < 0.4){ tok.x = tx; tok.y = ty; moving = false; }
-  var want = Math.max(0, Math.min(WORLD_W - viewW, tok.x - viewW * 0.4)); cam += (want - cam) * 0.1; var cx = Math.round(cam);
-  for(var y = 0; y < VIEW_H; y += 4) R(y < 14 ? "#5BA8F5" : y < 26 ? "#8EC5FC" : "#B5DAFF", 0, y, viewW + 2, 4);
-  for(var cl = 0; cl < 9; cl++){ var px = ((cl * 97) % 900) - cx * 0.4; px = ((px % 700) + 700) % 700 - 40; R("#fff", px, 8 + (cl % 3) * 7, 18, 4); R("#fff", px + 3, 5 + (cl % 3) * 7, 10, 4); R("#DCEBFF", px, 11 + (cl % 3) * 7, 18, 1); }
-  for(var x = 0; x < viewW + 2; x++){ var wx = x + cx * 0.6; var h1 = 8 + Math.round(10 * Math.abs(Math.sin(wx / 23))); R("#8FD694", x, 36 - h1, 1, h1); var h2 = 4 + Math.round(7 * Math.abs(Math.sin((x + cx * 0.85) / 15 + 1))); R("#5DBB63", x, 40 - h2, 1, h2); }
-  for(var gy = 36; gy < VIEW_H; gy += 4){ for(var gx = 0; gx < viewW + 8; gx += 8){ R((((gx + cx) >> 3) + (gy >> 2)) % 2 ? "#6CC36C" : "#62B862", gx - (cx % 8), gy, 8, 4); } }
-  R("#3F9A4B", 0, 36, viewW + 2, 1);
-  // path
-  for(var i = 0; i < 20; i++){ var x0 = nodeX(i), y0 = nodeY(i), x1 = nodeX(i + 1), y1 = nodeY(i + 1);
-    for(var s = 0; s <= 17; s++){ var f = s / 17, ff = f * f * (3 - 2 * f), pxx = x0 + (x1 - x0) * f, pyy = y0 + (y1 - y0) * ff; R("#B5873C", pxx - cx - 5, pyy - 5, 10, 10); }
-  }
-  for(var i2 = 0; i2 < 20; i2++){ var a0 = nodeX(i2), b0 = nodeY(i2), a1 = nodeX(i2 + 1), b1 = nodeY(i2 + 1);
-    for(var s2 = 0; s2 <= 17; s2++){ var f2 = s2 / 17, ff2 = f2 * f2 * (3 - 2 * f2); R("#F2D79B", a0 + (a1 - a0) * f2 - cx - 4, b0 + (b1 - b0) * ff2 - 4, 8, 8); }
-  }
-  // nodes
+  var cv = $("roadCv"); if(!cv.offsetParent) return;
+  var dpr = Math.min(3, window.devicePixelRatio || 1), cssW = cv.parentNode.clientWidth || 320, cssH = Math.round(Math.max(300, Math.min(440, window.innerHeight * 0.5)));
+  var k = Math.max(2.6, Math.min(3.6, cssW / 150)), VW = cssW / k, VH = cssH / k;
+  if(cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)){ cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + "px"; }
+  var c = cv.getContext("2d"); c.imageSmoothingEnabled = false; g = c;
+  var dt = Math.min(0.05, (t - (roadFrame.last || t)) / 1000); roadFrame.last = t; update(dt, t);
+  var np = near(pos.x, pos.y), band = Math.min(J.ROAD.length - 1, Math.round(np.p)), reg = REGION[J.ROAD[band].country], bio = BIOME[reg.b];
+  if(band !== lastBand){ var oc = lastBand < 0 ? null : J.ROAD[lastBand].country; lastBand = band; if(J.ROAD[band].country !== oc){ banner = { t: t, text: "Region " + reg.r + " · " + reg.n + " · " + reg.lv }; } }
+  var px = isoX(pos.x, pos.y), py = isoY(pos.x, pos.y); if(!cam) cam = { x: px, y: py }; cam.x += (px - cam.x) * 0.12; cam.y += (py - cam.y) * 0.12;
+  c.setTransform(dpr * k, 0, 0, dpr * k, 0, 0); g.fillStyle = bio.bg; g.fillRect(0, 0, VW, VH);
+  var ox = Math.round(VW / 2 - cam.x), oy = Math.round(VH / 2 - cam.y + 6); c.translate(ox, oy);
+  var objs = [], cx = Math.round(pos.x), cy = Math.round(pos.y), R0 = Math.ceil(Math.max(VW / TW, VH / TH)) + 4;
+  for(var gx = cx - R0; gx <= cx + R0; gx++){ for(var gy = cy - R0; gy <= cy + R0; gy++){
+    var sx = isoX(gx, gy), sy = isoY(gx, gy); if(sx + ox < -TW || sx + ox > VW + TW || sy + oy < -TH * 3 || sy + oy > VH + TH * 3) continue;
+    var ti = tinfo(gx, gy); if(ti.d > 5.8) continue; var bb = BIOME[REGION[J.ROAD[Math.min(J.ROAD.length - 1, Math.round(ti.p))].country].b], chk = (gx + gy) & 1;
+    if(ti.d < 1.3 + (ti.h % 3) * 0.2){ tileDiamond(sx, sy, ti.d > 1.0 ? "#CDAA6A" : chk ? "#E6C98E" : "#DDBD7F"); }
+    else if(ti.d < 3.3){ tileDiamond(sx, sy, chk ? bb.a : bb.b); if(ti.h % 23 === 0) objs.push({ z: gx + gy + 0.3, f: (function(a, b){ return function(){ R("#F7C948", a, b - 2, 1, 1); R("#fff", a + 2, b - 1, 1, 1); }; })(sx, sy) }); }
+    else { var lava = bb.rock === "#3A2E28" && ti.h % 5 === 0; tileDiamond(sx, sy, lava ? (Math.floor(t / 400 + ti.h) % 2 ? "#E4572E" : "#C8401F") : bb.rock);
+      if(!lava && ti.h % 100 < 58){ var kind = bb.rock === "#3F7A3F" ? (ti.h % 7 === 0 ? "rock" : "tree") : bb.rock === "#33645B" ? (ti.h % 4 === 0 ? "rock" : "dead") : (ti.h % 3 === 0 ? "rock" : "spike"); objs.push({ z: gx + gy + 0.5, f: (function(a, b, kk){ return function(){ tree(Math.round(a), Math.round(b + 3), kk); }; })(sx, sy, kind) }); } }
+  } }
   J.ROAD.forEach(function(n, idx){
-    var x = nodeX(idx) - cx, y = nodeY(idx); if(x < -30 || x > viewW + 30) return; var done = S.cleared[n.id] && (n.enemy || n.boss || n.give), ahead = idx > S.node;
-    if(n.type === "start") gateSprite(x, y + 2); else if(n.type === "end") flagSprite(x, y + 2); else if(n.type === "town") townSprite(x, y + 2);
-    else if(n.give){ if(done) { R("#B5873C", x - 3, y - 1, 7, 2); } else pickup(pickupKind(n), x, y + 2, t); }
-    else if(n.enemy || n.boss){ if(done){ R("#3F9A4B", x - 4, y - 1, 8, 2); R("#F3F7EA", x - 1, y - 8, 1, 8); R("#2E9B57", x, y - 8, 5, 3); } else { g.save(); g.translate(x, y + 2); if(n.boss) { g.scale(1, 1); } critter(ART[n.id], 0, 0, t); g.restore(); if(idx === S.node && J.pending(S)){ R("#C0392B", x - 3, y - 26 + Math.round(Math.sin(t / 150)), 7, 7); R("#fff", x, y - 25 + Math.round(Math.sin(t / 150)), 1, 3); R("#fff", x, y - 21 + Math.round(Math.sin(t / 150)), 1, 1); } } }
-    if(n.type === "boss" && !done){ R("#F7C948", x - 5, y - 30, 11, 2); R("#F7C948", x - 5, y - 33, 2, 3); R("#F7C948", x, y - 34, 2, 4); R("#F7C948", x + 4, y - 33, 2, 3); }
+    var p = NP[idx], sx = isoX(p.x, p.y), sy = isoY(p.x, p.y), done = S.cleared[n.id];
+    if(sx + ox < -40 || sx + ox > VW + 40 || sy + oy < -50 || sy + oy > VH + 50) return;
+    if(n.type === "start") objs.push({ z: p.x + p.y - 1, f: function(){ gateSprite(Math.round(sx), Math.round(sy + 4)); } });
+    else if(n.type === "end") objs.push({ z: p.x + p.y, f: function(){ flagSprite(Math.round(sx), Math.round(sy + 4)); } });
+    else if(n.type === "town") objs.push({ z: p.x + p.y - 1, f: function(){ townSprite(Math.round(sx), Math.round(sy - 2)); campfire(Math.round(sx + 14), Math.round(sy + 6), t); } });
+    else if(n.give){ if(!done) objs.push({ z: p.x + p.y, f: function(){ pickup(pickupKind(n), Math.round(sx), Math.round(sy + 4), t); } }); }
+    else if(n.enemy || n.boss){ var ep = enemyPos(idx), ex = Math.round(isoX(ep.x, ep.y)), ey = Math.round(isoY(ep.x, ep.y) + 4);
+      if(!done) objs.push({ z: ep.x + ep.y, f: function(){ var isB = !!n.boss, sw = !isB && n.type !== "mini";
+        if(sw){ [[-9, 2, 0.65], [8, 3, 0.65], [0, -2, 0.8]].forEach(function(o){ g.save(); g.translate(ex + o[0], ey + o[1]); g.scale(o[2], o[2]); critter(ART[n.id], 0, 0, t + o[0] * 40); g.restore(); }); }
+        else { g.save(); g.translate(ex, ey); g.scale(isB ? 1 : 0.9, isB ? 1 : 0.9); critter(ART[n.id], 0, 0, t); g.restore(); }
+        var bob = Math.round(Math.sin(t / 150)); R("#C0392B", ex - 3, ey - 34 + bob, 7, 7); R("#fff", ex, ey - 33 + bob, 1, 3); R("#fff", ex, ey - 29 + bob, 1, 1);
+        if(isB){ R("#F7C948", ex - 5, ey - 42, 11, 2); R("#F7C948", ex - 5, ey - 45, 2, 3); R("#F7C948", ex, ey - 46, 2, 4); R("#F7C948", ex + 4, ey - 45, 2, 3); } } }); }
   });
-  party(Math.round(tok.x - cx), Math.round(tok.y + 1), t);
+  var tired = !canAdvance() && !J.pending(S) && J.nodeAt(S.node).type !== "end" && np.p >= S.node - 0.05;
+  if(tired){ var cp = along(S.node); objs.push({ z: cp.x + cp.y + 0.2, f: function(){ campfire(Math.round(isoX(cp.x + 0.8, cp.y + 0.2)), Math.round(isoY(cp.x + 0.8, cp.y + 0.2) + 3), t); } }); }
+  objs.push({ z: pos.x + pos.y + 0.1, f: function(){ var sx = Math.round(isoX(pos.x, pos.y)), sy = Math.round(isoY(pos.x, pos.y)); R("rgba(20,38,27,.3)", sx - 10, sy + 1, 20, 2); party(sx, sy, walkT > 0 ? t : 0); } });
+  objs.sort(function(a, b){ return a.z - b.z; }); objs.forEach(function(o){ o.f(); });
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // joystick + banner (css px)
+  var bx = 62, by = cssH - 62; c.globalAlpha = joy ? 0.9 : 0.45; if(joy){ bx = joy.x0; by = joy.y0; }
+  c.fillStyle = "rgba(20,38,27,.35)"; c.beginPath(); c.arc(bx, by, 34, 0, 7); c.fill(); c.strokeStyle = "#FBF7EA"; c.lineWidth = 2; c.stroke();
+  c.fillStyle = "#FBF7EA"; c.beginPath(); c.arc(joy ? joy.x0 + joy.dx * 28 : bx, joy ? joy.y0 + joy.dy * 28 : by, 13, 0, 7); c.fill(); c.globalAlpha = 1;
+  var age = (t - banner.t) / 1000; if(age >= 0 && age < 3.2){ c.globalAlpha = Math.min(1, 3.2 - age, age * 4); c.fillStyle = "rgba(20,38,27,.82)"; c.fillRect(0, 22, cssW, 44); c.fillStyle = "#F7C948"; c.font = "22px VT323, monospace"; c.textAlign = "center"; c.fillText(banner.text, cssW / 2, 51); c.textAlign = "left"; c.globalAlpha = 1; }
+  if(!joy && !hintOnce.joy && S.node === 0 && S.cleared[1] !== true){ c.fillStyle = "rgba(20,38,27,.8)"; c.font = "18px VT323, monospace"; c.textAlign = "center"; c.fillText("Drag to walk (or use arrow keys / WASD)", cssW / 2, cssH - 14); c.textAlign = "left"; }
+}
+function campfire(x, y, t){ R("#5A3A22", x - 4, y - 1, 8, 2); var f = Math.floor(t / 130) % 2; R("#E4572E", x - 2, y - 5 - f, 4, 4 + f); R("#F7C948", x - 1, y - 4, 2, 3); }
+function update(dt, t){
+  if(settings.tab !== "road" || document.querySelector("dialog[open]") || $("overlay").classList.contains("show") || $("fightov").classList.contains("show")){ walkT = 0; syncAct(); return; }
+  var dx = 0, dy = 0, str = 0;
+  if(joy){ dx = joy.dx; dy = joy.dy; str = joy.m; }
+  else { if(keys.ArrowLeft || keys.a) dx -= 1; if(keys.ArrowRight || keys.d) dx += 1; if(keys.ArrowUp || keys.w) dy -= 1; if(keys.ArrowDown || keys.s) dy += 1; var l = Math.sqrt(dx * dx + dy * dy); if(l){ dx /= l; dy /= l; str = 1; } }
+  walkT = str > 0.05 ? walkT + dt : 0;
+  if(str > 0.05){
+    var sp = SPEED * str * dt, gvx = (dx / (TW / 2) + dy / (TH / 2)) / 2 * sp, gvy = (dy / (TH / 2) - dx / (TW / 2)) / 2 * sp, lim = limitP();
+    function ok(x, y){ var n = near(x, y); return n.d <= WALK && n.p <= lim + 0.0001; }
+    if(ok(pos.x + gvx, pos.y + gvy)){ pos.x += gvx; pos.y += gvy; } else if(ok(pos.x + gvx, pos.y)) pos.x += gvx; else if(ok(pos.x, pos.y + gvy)) pos.y += gvy;
+    hintOnce.joy = true;
+  }
+  var p = curP();
+  if(canAdvance() && p >= S.node + 1 - 0.05) arrive();
+  else if(!canAdvance() && !J.pending(S) && p >= S.node - 0.05 && J.nodeAt(S.node).type !== "end" && !hintOnce["t" + S.node + S.day + S.march]){ hintOnce["t" + S.node + S.day + S.march] = true; toast(S.rest ? "The army is resting at the hospital." : S.hp <= 0 ? "The army has no health left." : "The army is too tired. Solve a puzzle or start a new day for energy."); }
+  syncAct();
+}
+function syncAct(){
+  var pn = J.pending(S), want = "", p = curP();
+  if(pn && p >= S.node - 0.14 && !run){ want = pn.boss ? "boss" : "fight"; }
+  if(want === lastAct && want !== "fight") return; var b = $("rdAct");
+  if(!want){ b.hidden = true; lastAct = ""; return; }
+  var label = want === "boss" ? "Face the " + J.BOSSES[pn.boss].name : (function(){ var o = J.odds(S, pn); return "Charge! · " + o.verdict + " · about -" + o.damage + " health"; })();
+  if(b.textContent !== label) b.textContent = label; b.hidden = false; b.setAttribute("data-act", want); if(lastAct !== want){ lastAct = want; sfx("bossin"); renderHere(); }
+}
+function arrive(){
+  var r = J.march(S); if(!r.ok) return; persist(); var n = r.node; sfx("pindrop"); renderHud();
+  if(n.give){ sfx("collect"); toast("Found " + n.name + ": " + lootText(n.give)); }
+  else if(n.type === "town"){ sfx("correct"); toast("Checkpoint: " + n.name); }
+  else if(n.enemy){ sfx("whoosh"); toast("A " + n.name.toLowerCase() + " blocks the road!"); }
+  else if(n.boss){ sfx("bossin"); toast("Big boss ahead: " + n.name); }
+  else if(n.type === "end") { sfx("milestone"); toast("Region 1 complete!"); }
+  renderHere(); renderHud();
 }
 function renderHere(){
-  var n = J.nodeAt(S.node), p = J.pending(S), html = "", max = J.maxHp(S);
-  $("prog").textContent = "node " + S.node + " / " + (J.ROAD.length - 1);
-  html += '<div class="ctry">' + (COUNTRY[n.country] || n.country) + ' · node ' + n.id + '</div><h2>' + esc(n.name) + '</h2>';
+  var n = J.nodeAt(S.node), p = J.pending(S), html = "", max = J.maxHp(S), reg = REGION[n.country];
+  $("prog").textContent = "stage " + STAGE[S.node] + " · node " + S.node + " / " + (J.ROAD.length - 1);
+  html += '<div class="ctry">' + reg.n + ' · ' + reg.lv + ' · stage ' + STAGE[S.node] + '</div><h2>' + esc(n.name) + '</h2>';
   if(p && p.enemy){
     var o = J.odds(S, p);
     html += '<p class="note">' + (p.type === "army" ? "An enemy army blocks the road." : p.type === "mini" ? "A mini-boss guards the way." : "A creature blocks the road.") + ' No puzzle here: the army fights on its own.</p>' +
       '<div class="odds"><span>Your attack <b>' + o.attack + '</b></span><span>vs <b>' + o.enemy + '</b></span><span class="verdict ' + o.verdict.replace(" ", "") + '">' + o.verdict + '</span><span>about <b>-' + o.damage + '</b> health</span></div>' +
-      '<p class="note">Loot: ' + lootText(p.loot) + '. ' + (o.win ? "" : "A loss sends the army back to the last town. ") + 'Heroes that make it weak: ' + J.HEROES[p.enemy.weak].name + ' (+4 attack per level).</p><button class="btn primary big" data-act="fight">Charge!</button>';
+      '<p class="note">Loot: ' + lootText(p.loot) + '. ' + (o.win ? "" : "A loss sends the army back to the last town. ") + 'Weak to: ' + J.HEROES[p.enemy.weak].name + ' (+4 attack per level). Not ready? Walk back and train, forge or rest first.</p>';
   } else if(p && p.boss){
     var b = J.BOSSES[p.boss], tried = !J.bossCanTry(S);
-    html += '<p class="note"><b>Big boss · ' + b.tier + '.</b> ' + b.fact + '</p><p class="note">Challenge: <b>' + J.PUZZLES[b.puzzle].name + '</b> (' + b.difficulty + '). Win: ' + lootText(b.reward) + ' and the <b>' + b.trophy + '</b> trophy (+5 max health).</p>' +
-      (tried ? '<p class="note"><b>The boss already won today.</b> Come back tomorrow.</p>' : '<button class="btn primary big" data-act="boss">Face the ' + esc(b.name) + '</button>');
+    html += '<p class="note"><b>Big boss · ' + b.tier + '.</b> ' + b.fact + '</p><p class="note">Challenge: <b>' + J.PUZZLES[b.puzzle].name + '</b> (' + b.difficulty + '). Win: ' + lootText(b.reward) + ' and the <b>' + b.trophy + '</b> trophy (+5 max health).</p>' + (tried ? '<p class="note"><b>The boss already won today.</b> Come back tomorrow.</p>' : "");
   } else {
     html += '<p class="note">' + (n.text || (n.give ? "Collected: " + lootText(n.give) + "." : "Cleared.")) + '</p>';
     if(n.type === "end") html += '<p class="note"><b>Region 1 complete.</b> Region 2 is on its way.</p>';
-    else {
-      var why = S.rest ? "The army is resting." : S.march < 1 ? "No march points. Solve a puzzle in the City or start a new day." : S.hp <= 0 ? "The army has no health left." : "";
-      html += '<div class="marchbar"><button class="btn primary big" data-act="march"' + (why ? " disabled" : "") + '>March on ▶</button><span class="note">' + (why || "Costs 1 march point · you have " + S.march) + '</span></div>';
-    }
+    else html += '<p class="note">Walk to the next stage. Each new stage on the road costs <b>1 energy</b> (you have ' + S.march + '). Puzzles and new days refill it. Walking back is free.</p>';
   }
   if(S.hp < max * 0.5 && !S.rest) html += '<p class="note" style="color:#9C4A25"><b>The army is hurt.</b> ' + (S.buildings.hospital ? "Rest it in the Army tab before the next fight." : "Build a Hospital in the City to heal it.") + '</p>';
   $("here").innerHTML = html;
 }
-$("here").addEventListener("click", function(e){
-  var b = e.target.closest("button"); if(!b || moving) return; var a = b.getAttribute("data-act");
-  if(a === "march") doMarch(); else if(a === "fight") doFight(); else if(a === "boss") openBoss();
-});
-function doMarch(){
-  var r = J.march(S); if(!r.ok){ toast(r.error); sfx("notquite"); return; }
-  persist(); moving = true; sfx("pindrop"); renderHud(); renderHere();
-  var n = r.node;
-  setTimeout(function(){
-    if(n.give){ sfx("collect"); toast("Found " + n.name + ": " + lootText(n.give)); }
-    else if(n.type === "town"){ sfx("correct"); toast("Checkpoint: " + n.name); }
-    else if(n.enemy){ sfx("whoosh"); toast("A " + n.name.toLowerCase() + " appears!"); }
-    else if(n.boss){ sfx("bossin"); toast("Big boss ahead: " + n.name); }
-    renderAll();
-  }, 650);
-}
+$("rdAct").addEventListener("click", function(){ var a = this.getAttribute("data-act"); if(a === "fight") doFight(); else if(a === "boss") openBoss(); });
+(function(){
+  var cv = $("roadCv");
+  cv.addEventListener("pointerdown", function(e){ var r = cv.getBoundingClientRect(); joy = { id: e.pointerId, x0: e.clientX - r.left, y0: e.clientY - r.top, dx: 0, dy: 0, m: 0 }; try{ cv.setPointerCapture(e.pointerId); }catch(x){} e.preventDefault(); });
+  cv.addEventListener("pointermove", function(e){ if(!joy || e.pointerId !== joy.id) return; var r = cv.getBoundingClientRect(), vx = e.clientX - r.left - joy.x0, vy = e.clientY - r.top - joy.y0, m = Math.sqrt(vx * vx + vy * vy); if(m > 6){ joy.dx = vx / m; joy.dy = vy / m; joy.m = Math.min(1, m / 40); } else { joy.dx = joy.dy = 0; joy.m = 0; } if(m > 46){ joy.x0 += vx / m * (m - 46); joy.y0 += vy / m * (m - 46); } });
+  function end(e){ if(joy && e.pointerId === joy.id) joy = null; } cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  window.addEventListener("keydown", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "a", "s", "d"].indexOf(k) >= 0){ keys[k] = true; if(settings.tab === "road" && k.indexOf("Arrow") === 0) e.preventDefault(); } });
+  window.addEventListener("keyup", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; keys[k] = false; });
+  window.addEventListener("blur", function(){ keys = {}; });
+})();
 function doFight(){
-  var n = J.pending(S), before = S.node; if(!n) return; var res = J.fight(S); persist(); renderHud(); playFight(n, res, function(){ moving = S.node !== before; if(!res.won && res.retreatTo !== undefined) toast("Retreated to " + J.nodeAt(S.node).name); renderAll(); });
+  var n = J.pending(S), before = S.node; if(!n) return; var o = J.odds(S, n), res = J.fight(S); persist(); renderHud(); $("rdAct").hidden = true; lastAct = "";
+  playFight(n, res, function(){ if(!res.won && res.retreatTo !== undefined){ toast("Retreated to " + J.nodeAt(S.node).name); placeAt(S.node); } renderAll(); }, o);
 }
+/* stage map */
+var mapPts = null;
+function drawMap(){
+  var cv = $("mapCv"), cssW = Math.min(420, window.innerWidth * 0.88), cssH = Math.min(560, window.innerHeight * 0.72), dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.style.width = cssW + "px"; cv.style.height = cssH + "px"; cv.width = cssW * dpr; cv.height = cssH * dpr; var c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.imageSmoothingEnabled = false;
+  var pad = 36; mapPts = J.ROAD.map(function(n, k){ var row = Math.floor(k / 6), col = k % 6; if(row % 2) col = 5 - col; return { x: pad + col * ((cssW - pad * 2) / 5), y: pad + 18 + row * ((cssH - pad * 2 - 30) / 3.5) + Math.sin(k * 1.3) * 10 }; });
+  c.fillStyle = "#D9B77A"; c.fillRect(0, 0, cssW, cssH); c.fillStyle = "rgba(255,255,255,.12)"; for(var i = 0; i < 60; i++) c.fillRect((i * 97) % cssW, (i * 53) % cssH, 14, 4);
+  var cols = { jungle: "rgba(63,165,95,.45)", swamp: "rgba(58,150,140,.45)", volcano: "rgba(228,87,46,.4)" };
+  mapPts.forEach(function(p, idx){ c.fillStyle = cols[REGION[J.ROAD[idx].country].b]; c.beginPath(); c.arc(p.x, p.y, 34, 0, 7); c.fill(); });
+  c.strokeStyle = "#8D6E3C"; c.lineWidth = 9; c.lineCap = "round"; c.lineJoin = "round"; c.beginPath(); mapPts.forEach(function(p, i){ i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y); }); c.stroke();
+  c.strokeStyle = "#F2D79B"; c.lineWidth = 5; c.stroke();
+  var done = {}; c.font = "17px VT323, monospace"; c.textAlign = "center";
+  J.ROAD.forEach(function(n, idx){ var p = mapPts[idx], cl = S.cleared[n.id], reach = idx <= S.node, col = n.boss ? "#8E3FA8" : n.enemy ? "#C0392B" : n.type === "town" ? "#3A7BD5" : n.type === "end" ? "#2E9B57" : n.give ? "#F7C948" : "#2E9B57";
+    c.fillStyle = "#14261B"; c.beginPath(); c.arc(p.x, p.y, n.boss ? 13 : 10, 0, 7); c.fill(); c.fillStyle = (n.enemy || n.boss) && cl ? "#3A7BD5" : col; c.beginPath(); c.arc(p.x, p.y, n.boss ? 11 : 8, 0, 7); c.fill();
+    c.fillStyle = "#fff"; c.fillText(n.boss ? "B" : n.enemy ? ((cl) ? "✓" : "!") : n.type === "town" ? "T" : n.give ? "?" : n.type === "end" ? "⚑" : "⌂", p.x, p.y + 4);
+    c.fillStyle = "#14261B"; c.fillText(STAGE[idx], p.x, p.y - 15); if(!reach){ c.fillStyle = "rgba(20,38,27,.35)"; c.beginPath(); c.arc(p.x, p.y, 10, 0, 7); c.fill(); }
+    var rg = REGION[n.country]; if(!done[n.country]){ done[n.country] = 1; c.fillStyle = "#4A2F12"; c.font = "19px VT323, monospace"; c.fillText(rg.n + " · " + rg.lv, Math.max(115, Math.min(cssW - 115, p.x)), p.y + 33); c.font = "17px VT323, monospace"; } });
+  var me = mapPts[Math.min(S.node, mapPts.length - 1)]; c.fillStyle = "#14261B"; c.beginPath(); c.arc(me.x, me.y - 28 + Math.round(Math.sin(performance.now() / 200) * 2), 6, 0, 7); c.fill(); c.fillStyle = "#F7C948"; c.beginPath(); c.arc(me.x, me.y - 28 + Math.round(Math.sin(performance.now() / 200) * 2), 4, 0, 7); c.fill();
+}
+$("rd-map").onclick = function(){ $("dlg-map").showModal(); drawMap(); sfx("pageflip"); };
+$("map-close").onclick = function(){ $("dlg-map").close(); };
+$("mapCv").addEventListener("click", function(e){ if(!mapPts) return; var r = this.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = -1, bd = 24; mapPts.forEach(function(p, i){ var d = Math.hypot(p.x - x, p.y - y); if(d < bd){ bd = d; best = i; } });
+  if(best >= 0){ if(best <= S.node){ $("dlg-map").close(); placeAt(best); sfx("whoosh"); toast("Travelled to " + J.nodeAt(best).name); } else { toast("Not reached yet. Walk there first."); sfx("notquite"); } } });
 
 /* ================= skirmish ================= */
-function playFight(n, res, done){
+function playFight(n, res, done, odds){
   var ov = $("fightov"), cv = $("fightCv"), c = cv.getContext("2d"), t0 = performance.now(), ended = false, boss = !!n.boss;
   $("f-title").textContent = n.name; $("f-res").innerHTML = '<p class="note">The army moves in…</p>'; $("f-ok").style.display = "none"; ov.classList.add("show"); sfx("whoosh");
   c.imageSmoothingEnabled = false; var hit1 = false, hit2 = false;
@@ -273,7 +366,8 @@ function playFight(n, res, done){
     var lunge = t > 0.4 && t < 1.0 ? Math.sin((t - 0.4) / 0.6 * Math.PI) * 34 : 0, clash = t > 0.62 && t < 0.9, shake = clash ? (Math.round(t * 40) % 2 ? 2 : -2) : 0;
     if(t > 0.6 && !hit1){ hit1 = true; sfx("hit"); } if(t > 0.8 && !hit2){ hit2 = true; sfx(res.won ? "hit" : "miss"); }
     c.save(); c.translate(28 + lunge, 54); party(0, 0, now); c.restore();
-    var gone = res.won && t > 1.0; if(!gone || Math.floor(t * 12) % 2 === 0){ c.save(); c.translate(116 + shake, 54); c.scale(-1, 1); c.save(); c.scale(1.5, 1.5); critter(ART[n.id], 0, 0, now); c.restore(); c.restore(); }
+    var gone = res.won && t > 1.0; if(!gone || Math.floor(t * 12) % 2 === 0){ c.save(); c.translate(116 + shake, 54); c.scale(-1, 1); var sw = !boss && n.type !== "mini"; if(sw){ [[-14, 2], [8, -2], [26, 3]].forEach(function(o){ c.save(); c.translate(o[0], o[1]); c.scale(1.1, 1.1); critter(ART[n.id], 0, 0, now + o[0] * 30); c.restore(); }); } else { c.save(); c.scale(boss ? 1.4 : 1.5, boss ? 1.4 : 1.5); critter(ART[n.id], 0, 0, now); c.restore(); } c.restore(); }
+    if(odds){ [0.27, 0.18, 0.33, 0.22].forEach(function(f, i){ var s0 = 0.66 + i * 0.13; if(t > s0 && t < s0 + 0.5){ g.fillStyle = "#F7C948"; g.font = "9px VT323, monospace"; g.fillText("-" + Math.round(odds.attack * f), 96 + (i % 2) * 14 - (i > 1 ? 10 : 0), 28 - (t - s0) * 24 - (i % 2) * 5); } }); }
     if(clash){ R("#fff", 62 + (Math.round(t * 30) % 4), 30, 3, 3); R("#F7C948", 70, 26 + (Math.round(t * 20) % 3), 3, 3); }
     if(t > 1.0){ g.fillStyle = "#14261B"; g.font = "9px VT323, monospace"; g.fillText("-" + res.damage, 28, 24 - Math.min(10, (t - 1.0) * 14)); }
     if(t > 1.5 && !ended){ ended = true; finishFight(); }
@@ -356,7 +450,7 @@ $("btn-sound").onclick = function(){ settings.sfx = !settings.sfx; store(KEY_SET
 $("tool-day").onclick = function(){ var r = J.nextDay(S); persist(); $("dlg-tools").close(); toast("Day " + S.day + ": +" + r.march + " march" + (Object.keys(r.produced).length ? ", " + lootText(r.produced) : "")); sfx("milestone"); renderAll(); };
 $("tool-res").onclick = function(){ J.RES.forEach(function(r){ S.res[r] += 100; }); persist(); renderAll(); sfx("collect"); };
 $("tool-hp").onclick = function(){ S.hp = Math.max(1, Math.round(J.maxHp(S) * 0.2)); persist(); hurt(); renderAll(); };
-$("tool-reset").onclick = function(){ S = J.normaliseState(null); persist(); tok.x = nodeX(0); tok.y = nodeY(0); prevRes = null; $("dlg-tools").close(); renderAll(); };
+$("tool-reset").onclick = function(){ S = J.normaliseState(null); persist(); placeAt(0); prevRes = null; $("dlg-tools").close(); renderAll(); };
 setInterval(function(){
   if(J.tickRest(S, Date.now())){ persist(); toast("The army is rested and ready!"); sfx("correct"); renderAll(); } else if(S.rest){ renderHud(); if(settings.tab === "army") renderArmy(); }
 }, 500);
