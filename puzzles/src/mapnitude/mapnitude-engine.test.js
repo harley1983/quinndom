@@ -31,14 +31,14 @@ test("capital distances look right: London-Paris style checks", () => {
 
 console.log("scoring");
 test("full points inside the band, zero far outside, falling in between", () => {
-  const e = E.scoreGuess("population", 1000000, 1000000, "easy"), w = E.scoreGuess("population", 1100000, 1000000, "easy");
-  assert.strictEqual(e.share, 1); assert.strictEqual(w.share, 1);                              // 10% off is inside Easy's 15%
+  const e = E.scoreGuess("population", 1000000, 1000000, "easy"), w = E.scoreGuess("population", 1040000, 1000000, "easy");
+  assert.strictEqual(e.share, 1); assert.strictEqual(w.share, 1);                              // 4% off is inside Easy's 5%
   assert.strictEqual(E.scoreGuess("population", 1000000, 10000000, "easy").share, 0);          // 10 times too small
   const mid = E.scoreGuess("population", 1000000, 3000000, "easy").share; assert.ok(mid > 0.3 && mid < 0.8, String(mid));
 });
-test("harder levels are stricter for the same guess", () => {
-  const g = ["easy", "normal", "hard"].map(d => E.scoreGuess("area", 1300, 1000, d).share);
-  assert.ok(g[0] > g[1] && g[1] > g[2], g.join(" "));
+test("a 10% miss costs most on Easy (famous countries) and nothing on Hard (obscure ones)", () => {
+  const g = ["easy", "normal", "hard"].map(d => E.scoreGuess("area", 1100, 1000, d).share);
+  assert.ok(g[0] < g[1] && g[1] < g[2], g.join(" "));   // famous countries are held to the tightest band, obscure ones the most forgiving
 });
 test("too high and too low by the same factor score the same", () => {
   assert.ok(near(E.scoreGuess("distance", 2000, 1000, "normal").share, E.scoreGuess("distance", 500, 1000, "normal").share, 1e-9));
@@ -64,10 +64,10 @@ test("offBy wording", () => {
 });
 
 console.log("making games");
-test("every game has 5 rounds, 3+ kinds of question, no country twice, and answers that exist", () => {
+test("Easy has 3 rounds, Normal and Hard 4, every question a different kind, no country twice, and answers that exist", () => {
   for (const d of E.DIFFICULTIES) for (let i = 0; i < 25; i++) {
-    const g = E.makeGame(d, i, facts), codes = []; assert.strictEqual(g.rounds.length, 5);
-    assert.ok(new Set(g.rounds.map(r => r.type)).size >= 3, d + i);
+    const g = E.makeGame(d, i, facts), codes = []; assert.strictEqual(g.rounds.length, E.ROUNDS[d]);
+    assert.strictEqual(new Set(g.rounds.map(r => r.type)).size, g.rounds.length, d + i);
     g.rounds.forEach(r => { codes.push(r.a); if (r.b) codes.push(r.b); assert.ok(r.truth > 0 && isFinite(r.truth)); assert.ok(E.canAsk(r.type, by[r.a]));
       const T = E.TYPES[r.type]; assert.ok(r.truth >= T.min && r.truth <= T.max, r.type + " " + r.truth); if (r.type === "distance") assert.ok(r.truth > 300); });
     assert.strictEqual(new Set(codes).size, codes.length, "no repeats " + d + i);
@@ -88,10 +88,10 @@ test("a population round never lands on the Vatican; a peak round never on a dis
 });
 
 console.log("playing");
-test("5 guesses finish the game; points add up; the game then refuses guesses", () => {
+test("perfect guesses finish the game; points add up; the game then refuses guesses", () => {
   const g = E.makeGame("normal", 0, facts); let last;
   g.rounds.forEach(r => { last = E.submit(g, r.truth); }); assert.ok(last.done); assert.strictEqual(g.status, "done");
-  assert.strictEqual(E.totalScore(g), 5000); assert.strictEqual(E.maxScore(g), 5000); assert.ok(E.passed(g)); assert.strictEqual(E.stars(g), 3);
+  assert.strictEqual(E.totalScore(g), 4000); assert.strictEqual(E.maxScore(g), 4000); assert.ok(E.passed(g)); assert.strictEqual(E.stars(g), 3);
   assert.strictEqual(E.submit(g, 5).error, "Game over");
 });
 test("a wild guess scores zero and fails the game", () => {
@@ -119,7 +119,7 @@ test("question text", () => {
 });
 test("share text", () => {
   const g = E.makeGame("easy", 2, facts); g.rounds.forEach(r => E.submit(g, r.truth)); g.hintsUsed = 1;
-  const t = E.shareGrid(g); assert.ok(t.startsWith("Mapnitude easy · 5,000/5,000 ★★★ · 1 hint")); assert.ok(t.endsWith("🟩🟩🟩🟩🟩"));
+  const t = E.shareGrid(g); assert.ok(t.startsWith("Mapnitude easy · 3,000/3,000 ★★★ · 1 hint")); assert.ok(t.endsWith("🟩🟩🟩"));
 });
 test("save counts completions per difficulty and cleans bad data", () => {
   const s = E.emptySave(); E.recordCompleted(s, "easy"); E.recordCompleted(s, "hard"); E.recordCompleted(s, "hard");

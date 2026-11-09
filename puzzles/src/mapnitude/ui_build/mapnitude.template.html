@@ -192,7 +192,7 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
         <button id="d-hard" data-d="hard" aria-pressed="false">Hard</button>
       </div>
       <div class="stats" aria-live="polite">
-        <span><i>Round</i><b id="stat-round">1/5</b></span>
+        <span><i>Round</i><b id="stat-round">1/3</b></span>
         <span><i>Score</i><b id="stat-score">0</b></span>
       </div>
     </div>
@@ -243,9 +243,9 @@ dialog::backdrop{background:rgba(29,53,87,.55)}
 <dialog id="dlg-help"><div class="dlg">
   <button class="btn close" onclick="this.closest('dialog').close()">Close</button>
   <h2>How to play</h2>
-  <p>Five rounds. Each one asks for a number about a country: how many people live there, how big it is, how high its tallest peak is, or how far apart two capitals are. Drag the slider (or use the 2% buttons) and lock in your best estimate.</p>
-  <p>The slider is logarithmic: each tick is ten times bigger than the last, so the first job is getting the <b>order of magnitude</b> right. Points depend on how many times too big or too small you are, not on the raw difference. Up to 1,000 a round, 5,000 a game, and 60% passes.</p>
-  <p>Easy asks about famous countries and forgives about 15%. Normal digs deeper and forgives 8%. Hard is the obscure ones and wants you within 4%. Stuck? A hint squeezes the slider around the answer but costs 25% of that round's points the first time and 50% the second. You get 3 hints a game on Easy and Normal, 2 on Hard.</p>
+  <p>Easy is 3 rounds, Normal and Hard are 4. Each one asks for a number about a country: how many people live there, how big it is, how high its tallest peak is, or how far apart two capitals are. Drag the slider (or use the 2% buttons) and lock in your best estimate.</p>
+  <p>The slider is logarithmic: each tick is ten times bigger than the last, so the first job is getting the <b>order of magnitude</b> right. Points depend on how many times too big or too small you are, not on the raw difference. Up to 1,000 a round, and 60% of the total passes.</p>
+  <p>Easy asks about famous countries, so it wants you within 5% for full points. Normal digs deeper and forgives 8%. Hard is the obscure ones, so it forgives 15%. Stuck? A hint squeezes the slider around the answer but costs 25% of that round's points the first time and 50% the second. You get 3 hints a game on Easy and Normal, 2 on Hard.</p>
   <p>Numbers are current-day figures: population is the latest (2025) UN/World Bank estimate, area is total area, and peaks are each country's highest point.</p>
 </div></dialog>
 
@@ -368,7 +368,7 @@ function renderHint(){
   $("btn-hint").disabled = left <= 0 || game.hintLevel >= 2;
 }
 function renderStats(){
-  $("stat-round").textContent = Math.min(game.results.length + 1, 5) + "/5";
+  $("stat-round").textContent = Math.min(game.results.length + 1, game.rounds.length) + "/" + game.rounds.length;
   $("stat-score").textContent = E.totalScore(game).toLocaleString("en-US");
 }
 function names(round){ var a = BY[round.a].name; return round.b ? a + " ↔ " + BY[round.b].name : a; }

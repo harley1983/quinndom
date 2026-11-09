@@ -1,11 +1,12 @@
 /* Mapnitude engine: pure game logic, no DOM, no storage. Browser (window.MapnitudeEngine) and Node (module.exports).
  *
- * Rules (QuinnDom Release 2, FR-4.5): 5 rounds. Each round asks for one country fact (population, area, distance between two
- * capitals, or highest point) and the player sets a slider. The closer the guess, the more points (0 to 1000 a round, 5000 a game).
+ * Rules (QuinnDom Release 2, FR-4.5): 3 to 4 rounds. Each round asks for one country fact (population, area, distance between two
+ * capitals, or highest point) and the player sets a slider. The closer the guess, the more points (0 to 1000 a round).
  *  - The slider is logarithmic, so "10 thousand or 10 million?" matters more than "5.1 or 5.3 million".
  *  - Score = how many times too big or too small the guess is (not the difference): full points inside a band, then a straight
  *    fall to zero. Difficulty sets how wide that band is and which countries are asked about (Easy = well-known names).
  *  - Hints narrow the slider for the current round and cost 25% / 50% of that round's points. Easy and Normal have 3 hints a game, Hard 2.
+ *  - Easy is 3 rounds, Normal and Hard 4. Full-points band: Easy +-5% (famous countries), Normal +-8%, Hard +-15% (obscure countries).
  *  - Games are generated from a seed: game N of a difficulty is the same for everyone. Save file keeps only how many games were completed.
  *  - facts = rows from data/mapnitude-facts.json: { code, name, capital, continent, population?, area, peakM?, peak?, peakNote?, capLat?, capLon?, fame }.
  */
@@ -16,10 +17,11 @@
   "use strict";
 
   var DIFFICULTIES = ["easy", "normal", "hard"];
-  var ROUNDS = 5, MAX_ROUND = 1000, PASS_PERCENT = 60;
+  var ROUNDS = { easy: 3, normal: 4, hard: 4 }, MAX_ROUND = 1000, PASS_PERCENT = 60;
   var SEED = 20261109;
+  // Famous countries are held to a tighter band (you should know them); obscure ones get a generous one.
   // fullWithin: relative error that still earns full points (0.15 = 15%); zeroAt: "this many times too big or small" earns nothing
-  var LEVELS = { easy: { fullWithin: 0.15, zeroAt: 10 }, normal: { fullWithin: 0.08, zeroAt: 6 }, hard: { fullWithin: 0.04, zeroAt: 4 } };
+  var LEVELS = { easy: { fullWithin: 0.05, zeroAt: 10 }, normal: { fullWithin: 0.08, zeroAt: 6 }, hard: { fullWithin: 0.15, zeroAt: 4 } };
   var HINT_COST = [1, 0.75, 0.5];                          // share of the round's points left after 0, 1, 2 hints
   var HINT_SPAN = [Infinity, 100, 10];                     // slider window (highest / lowest) after 0, 1, 2 hints
   var HINTS = { easy: 3, normal: 3, hard: 2 };
@@ -71,11 +73,11 @@
     return distanceKm([a.capLat, a.capLon], [byCode[round.b].capLat, byCode[round.b].capLon]);
   }
 
-  /** Game number `index` (0, 1, 2 ...) of a difficulty: 5 rounds, at least 3 different kinds of question, no country twice. */
+  /** Game number `index` (0, 1, 2 ...) of a difficulty: 3 rounds (Easy) or 4 (Normal, Hard), every question of a different kind, no country twice. */
   function makeGame(difficulty, index, facts) {
     var rand = rng(SEED + DIFFICULTIES.indexOf(difficulty) * 1000003 + index * 7919), pool = poolFor(difficulty, facts), byCode = {};
     facts.forEach(function (f) { byCode[f.code] = f; });
-    var types = shuffle(TYPE_LIST.slice(), rand); types.push(TYPE_LIST[Math.floor(rand() * 4)]); shuffle(types, rand);
+    var types = shuffle(TYPE_LIST.slice(), rand).slice(0, ROUNDS[difficulty]);
     var used = {}, rounds = [];
     types.forEach(function (type, i) {
       var cands = shuffle(pool.filter(function (f) { return canAsk(type, f) && !used[f.code]; }), rand), a = cands[0], b = null;
