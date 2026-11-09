@@ -1,9 +1,8 @@
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><h1>Journey</h1><small>QUINNDOM PROTOTYPE</small></div>
+    <div class="brand"><h1>Journey</h1><small>QUINNDOM · ROAD PROTOTYPE</small></div>
     <div class="spacer"></div>
-    <span class="pill" title="Day" style="color:var(--mist);background:transparent;border-color:rgba(243,247,234,.35);box-shadow:none"><small style="color:var(--honey)">Day</small><span id="day">1</span></span>
     <button class="icon-btn" id="btn-tools" aria-label="Prototype tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></button>
     <button class="icon-btn" id="btn-sound" aria-label="Sound effects" aria-pressed="true">
       <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
@@ -14,33 +13,24 @@
 </header>
 
 <div class="hud"><div class="hudin">
+  <div class="hp" id="hp" title="Army health: the heroes' health"><i id="hp-i"></i><span id="hp-t"></span></div>
   <div class="res" id="res"></div>
-  <div class="row2">
-    <div class="hp" id="hp" title="Army health"><i id="hp-i"></i><span id="hp-t"></span></div>
-    <div class="pill" title="Energy: one per new stage on the road"><small>Energy</small><span id="march">0</span></div>
-    <div class="pill" title="Credit score: building values"><small>Credit</small><span id="credit">0</span></div>
-  </div>
 </div></div>
 
 <main>
-  <div class="tabs"><div class="seg" role="group" aria-label="Screens">
-    <button id="t-city" data-v="city" aria-pressed="true">City</button><button id="t-road" data-v="road" aria-pressed="false">Road</button><button id="t-army" data-v="army" aria-pressed="false">Army</button>
-  </div></div>
-
-  <section class="view show" id="v-city">
-    <div class="scene"><canvas id="cityCv" aria-label="Your city. Tap a plot to jump to its building card."></canvas></div>
-    <div class="cards" id="cards"></div>
+  <section class="view show" id="v-world">
+    <div class="worldwrap" id="worldwrap"><canvas id="worldCv" aria-hidden="true"></canvas><div id="worldNodes"></div></div>
   </section>
 
-  <section class="view" id="v-road">
-    <div class="region"><span>Region 1 · Mekong and the islands</span><small id="prog">node 0 / 20</small></div>
-    <div class="scene roadwrap"><canvas id="roadCv" aria-label="The winding road. Drag to walk your heroes along it."></canvas><button class="btn small mapbtn" id="rd-map" type="button">Map</button><button class="btn primary rdact" id="rdAct" type="button" hidden></button></div>
-    <div class="card here" id="here"></div>
+  <section class="view" id="v-level">
+    <div class="lvtop"><button class="btn small" id="lv-map" type="button">◀ World map</button><span class="lvname" id="lv-name"></span></div>
+    <div class="scene lvwrap" id="lvwrap">
+      <canvas id="lvCv" aria-label="Side-scrolling level. Run, jump and stomp."></canvas>
+      <button class="btn primary lvact" id="lvAct" type="button" hidden></button>
+      <div class="pad" id="pad"><button class="pb" id="c-left" aria-label="Left">◀</button><button class="pb" id="c-right" aria-label="Right">▶</button><button class="pb jump" id="c-jump" aria-label="Jump">JUMP</button></div>
+    </div>
+    <p class="note lvhelp">Arrow keys or A/D to run, Space or W to jump. Stomp little creatures from above. Hit <b>?</b> blocks from below. Armies and mini-bosses fight automatically: the flag over their heads shows your odds. The tent heals the army once a day.</p>
   </section>
-
-  <dialog id="dlg-map"><div class="mapbar"><b>Stage map</b><span class="note">Tap a reached stage to travel</span><button class="btn small" id="map-close" type="button">Close</button></div><canvas id="mapCv"></canvas></dialog>
-
-  <section class="view" id="v-army"></section>
 </main>
 
 <div class="toast-host" id="toasts"></div>
@@ -49,18 +39,18 @@
 
 <dialog id="dlg-help"><div class="dlg">
   <h2>How Journey works</h2>
-  <p><b>City.</b> Build and upgrade. Five buildings unlock a puzzle at level 2: Bamboo home (El Mundo), Timber grove (Wxrdie), Quarry (Mapnitude), Mycelium lab (Kuduso) and Solar array (Zame). Solving a puzzle pays the city and gives one energy. Each puzzle pays once a day.</p>
-  <p><b>Army.</b> The army is your heroes' health. It grows with troops (Food), your Credit score and how well your citizens are housed. Fights drain it. The Hospital heals it with one short rest. Nothing is ever lost.</p>
-  <p><b>Road.</b> Drag on the road (or use the arrow keys) to walk your heroes through the region. Reaching each new stage costs 1 energy; walking back is free. The Map button shows every stage and lets you travel back to ones you have reached. Crates hold Mimosa, Psilocybe and other items. Creatures, enemy armies and mini-bosses are fought automatically from army strength: check the odds first. Each region ends with a big boss, and the boss fight is a real puzzle.</p>
-  <p>This is a prototype: use the gear icon to skip to the next day or top up resources.</p>
+  <p><b>World map.</b> Five regions, five levels. Finish a level to unlock the next one. Each region ends at a castle guarded by a big boss.</p>
+  <p><b>Levels.</b> Run and jump like a platformer. Stomp little creatures for coins. Hit <b>?</b> blocks from below: they hold coins, <b>Mimosa</b> (+1 hint in your next boss puzzle) and <b>Psilocybe</b> (heals part of the army).</p>
+  <p><b>Army health.</b> The army is your heroes' health. Armies and mini-bosses fight automatically and cost health. When it runs out, the army falls back to the last checkpoint with a little health. The tent heals it once a day.</p>
+  <p><b>Bosses.</b> Each castle boss challenges you to one of the five puzzles (Wxrdie, El Mundo, Kuduso, Mapnitude, Zame). Win to clear the level. Nothing is ever lost.</p>
   <div class="acts"><button class="btn primary" onclick="this.closest('dialog').close()">Got it</button></div>
 </div></dialog>
 
 <dialog id="dlg-tools"><div class="dlg">
   <h2>Prototype tools</h2>
-  <p>Not part of the game: for testing the loop.</p>
+  <p>Not part of the game: for testing.</p>
   <div class="acts" style="justify-content:flex-start">
-    <button class="btn" id="tool-day">Next day</button><button class="btn" id="tool-res">+100 resources</button><button class="btn" id="tool-hp">Hurt army</button><button class="btn danger" id="tool-reset">Reset save</button>
+    <button class="btn" id="tool-day">New day (tent again)</button><button class="btn" id="tool-heal">Heal army</button><button class="btn" id="tool-hp">Hurt army</button><button class="btn" id="tool-unlock">Unlock all levels</button><button class="btn danger" id="tool-reset">Reset save</button>
   </div>
   <div class="acts"><button class="btn primary" onclick="this.closest('dialog').close()">Close</button></div>
 </div></dialog>
@@ -74,5 +64,4 @@
 
 <script>
 /*SOUND*/
-/*ENGINE*/
 </script>

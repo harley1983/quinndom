@@ -19,7 +19,7 @@ for family, weight, rel in FONTS:
 read = lambda p: p.read_text(encoding="utf-8")
 head = read(build / "head.part").replace("/*FONTS*/", "\n".join(css))
 html = head + read(build / "css.part") + read(build / "body.part") + read(build / "js.part")
-html = html.replace("/*SOUND*/", read(repo / "js/sound.js")).replace("/*ENGINE*/", read(root / "journey-engine.js"))
+html = html.replace("/*SOUND*/", read(repo / "js/sound.js"))
 puz = ""
 for p in ["elmundo", "wxrdie", "mapnitude", "kuduso", "zame"]:
     s = json.dumps(read(repo / "puzzles" / f"{p}.html")).replace("</", "<\\/")

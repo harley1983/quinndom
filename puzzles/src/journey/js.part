@@ -1,26 +1,55 @@
 <script>
 (function(){
 "use strict";
-var J = JourneyEngine;
 function $(id){ return document.getElementById(id); }
 function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
 function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-var KEY_SAVE = "quinndom.journey.v1", KEY_SET = "quinndom.journey.settings";
-var S = J.normaliseState(load(KEY_SAVE, null));
-var settings = Object.assign({ sfx: true, volume: 0.7, tab: "city" }, load(KEY_SET, {}));
+var KEY_SAVE = "quinndom.journey.v3", KEY_SET = "quinndom.journey.settings";
+var settings = Object.assign({ sfx: true, volume: 0.7 }, load(KEY_SET, {}));
+function fresh(){ return { hp: 100, maxHp: 100, attack: 30, coins: 0, food: 0, mimosa: 0, psilocybe: 0, done: {}, lv: {}, restUsed: false, day: 1 }; }
+var S = Object.assign(fresh(), load(KEY_SAVE, {}));
 function persist(){ store(KEY_SAVE, S); }
-window.Journey = { getSave: function(){ return JSON.parse(JSON.stringify(S)); }, loadSave: function(s){ S = J.normaliseState(s); persist(); renderAll(); } };
+window.Journey = { getSave: function(){ return JSON.parse(JSON.stringify(S)); }, loadSave: function(s){ S = Object.assign(fresh(), s || {}); persist(); renderHud(); buildWorld(); } };
 function applySound(){ Sound.setConfig({ sfx: settings.sfx, volume: settings.volume }); $("btn-sound").setAttribute("aria-pressed", String(settings.sfx)); }
 function sfx(n){ try{ if(settings.sfx) Sound.play(n); }catch(e){} }
-function toast(msg){ var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; $("toasts").appendChild(t); setTimeout(function(){ t.remove(); }, 2600); }
+function toast(msg){ var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; $("toasts").appendChild(t); setTimeout(function(){ t.remove(); }, 2400); }
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
-var RESN = { wood: "Wood", stone: "Stone", metal: "Metal", food: "Food", mimosa: "Mimosa", psilocybe: "Psilocybe" };
-var COUNTRY = { VN: "Vietnam", LA: "Laos", KH: "Cambodia", TH: "Thailand", MY: "Malaysia", ID: "Indonesia" };
-var GAME = { elmundo: "ElMundo", wxrdie: "Wxrdie", mapnitude: "Mapnitude", kuduso: "Kuduso", zame: "Zame" };
-function lootText(o){ return Object.keys(o).filter(function(r){ return o[r]; }).map(function(r){ return "+" + o[r] + " " + RESN[r]; }).join(", "); }
-function sum(o){ return Object.keys(o).reduce(function(a, r){ return a + o[r]; }, 0); }
 function fmtTime(sec){ sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ":" + (sec % 60 < 10 ? "0" : "") + (sec % 60); }
-
+function rng(seed){ var a = seed >>> 0; return function(){ a = (a + 0x6D2B79F5) >>> 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+var GAME = { elmundo: "ElMundo", wxrdie: "Wxrdie", mapnitude: "Mapnitude", kuduso: "Kuduso", zame: "Zame" };
+var PNAME = { elmundo: "El Mundo", wxrdie: "Wxrdie", mapnitude: "Mapnitude", kuduso: "Kuduso", zame: "Zame" };
+var BOSS_SECONDS = { wxrdie: 240, elmundo: 300, kuduso: 600, mapnitude: 240, zame: 0 };
+/* the five regions: one level and one puzzle boss each */
+var LEVELS = [
+  { id: 1, name: "Red River Delta", country: "Vietnam", lv: "Easy", pal: "jungle", len: 64, power: [10, 16], crit: ["rat", "leech"], army: "poacher", mini: null,
+    boss: { name: "Indochinese tiger", kind: "tiger", puzzle: "wxrdie", difficulty: "normal", index: 7, fact: "The big cat of the Indochinese forests, now one of Asia's most endangered.", reward: { coins: 40, food: 20 } } },
+  { id: 2, name: "Mekong Highlands", country: "Laos", lv: "Easy", pal: "highland", len: 70, power: [16, 24], crit: ["leech", "bat"], army: "poacher", mini: "cobra",
+    boss: { name: "King cobra", kind: "cobra", puzzle: "elmundo", difficulty: "normal", index: 3, fact: "The longest venomous snake on Earth. It can rear up to look a person in the eye.", reward: { coins: 50, food: 25 } } },
+  { id: 3, name: "Tonlé Sap Basin", country: "Cambodia", lv: "Normal", pal: "dusk", len: 76, power: [26, 36], crit: ["bat", "rat"], army: "convoy", mini: "monitor",
+    boss: { name: "Saltwater crocodile", kind: "monitor", puzzle: "kuduso", difficulty: "normal", index: 2, fact: "The largest living reptile. It hunts along the flooded edges of the Tonlé Sap.", reward: { coins: 60, food: 30 } } },
+  { id: 4, name: "Chao Phraya Marshes", country: "Thailand", lv: "Normal", pal: "marsh", len: 82, power: [36, 48], crit: ["crab", "monitor"], army: "convoy", mini: "crab",
+    boss: { name: "Giant mud crab", kind: "crab", puzzle: "mapnitude", difficulty: "normal", index: 1, fact: "A claw strong enough to crack a coconut. It rules the mangrove mud.", reward: { coins: 70, food: 35 } } },
+  { id: 5, name: "Ring of Fire Isles", country: "Indonesia", lv: "Hard", pal: "volcano", len: 90, power: [50, 66], crit: ["crab", "octo"], army: "skiff", mini: "octo",
+    boss: { name: "Komodo dragon", kind: "komodo", puzzle: "zame", difficulty: "normal", index: 4, fact: "The heaviest lizard alive. Its bite carries venom, and it hunts across volcanic islands.", reward: { coins: 90, food: 45 } } }
+];
+var PAL = {
+  jungle:   { sky: ["#5BA8F5", "#8EC5FC", "#CFE9FF"], hill1: "#8FD694", hill2: "#5DBB63", grass: "#4DAA57", dirt: "#8D6E63", dirt2: "#7A5C50", map: "#6CC36C" },
+  highland: { sky: ["#6FB7F0", "#A5D3F7", "#E3F2FF"], hill1: "#A8D8A0", hill2: "#78BE78", grass: "#5FB56A", dirt: "#9A8068", dirt2: "#86705B", map: "#8AD08E" },
+  dusk:     { sky: ["#F08A5D", "#F7B267", "#FFE3A8"], hill1: "#D9A15E", hill2: "#A9B55A", grass: "#8FB04F", dirt: "#9C6B4A", dirt2: "#86583B", map: "#C3C65E" },
+  marsh:    { sky: ["#7FB7A5", "#A9D2C3", "#D6EBDD"], hill1: "#7FBFAE", hill2: "#4F9E8E", grass: "#3E9A83", dirt: "#6B5A4A", dirt2: "#5A4A3C", map: "#5FB3A1" },
+  volcano:  { sky: ["#3A1F2E", "#7A3B3B", "#D27A47"], hill1: "#5A3A33", hill2: "#3E2823", grass: "#6B5A3E", dirt: "#4A362D", dirt2: "#3A2B24", map: "#8A6A55" }
+};
+var ENEMY_BOX = { creature: [14, 10], army: [26, 13], mini: [20, 14], boss: [26, 20] };
+var ENEMY_LOOT = { creature: { coins: 2 }, army: { coins: 6, food: 4 }, mini: { coins: 10, food: 8 }, boss: {} };
+var KIND_NAME = { rat: "Paddy rats", leech: "Giant leeches", bat: "Cave bats", poacher: "Timber poachers", cobra: "King cobra", convoy: "Smugglers' convoy", monitor: "River monitors", crab: "Reef crabs", skiff: "Pirate skiffs", octo: "Blue-ringed octopus", tiger: "Tiger", komodo: "Komodo dragon" };
+function hpMax(){ return S.maxHp; }
+function odds(power, type){
+  var r = S.attack / power, win = r >= 0.8, dmg = Math.max(1, Math.round(power * 0.5 / Math.max(0.5, r) * (win ? 1 : 1.2)));
+  return { attack: S.attack, enemy: power, ratio: r, win: win, damage: dmg, verdict: r >= 1.4 ? "easy" : r >= 0.8 ? "risky" : "too strong" };
+}
+var ICON = { coins: "Coins", food: "Food", mimosa: "Mimosa", psilocybe: "Psilocybe" };
+function lootText(o){ return Object.keys(o).filter(function(r){ return o[r]; }).map(function(r){ return "+" + o[r] + " " + ICON[r]; }).join(", "); }
+function addLoot(o){ Object.keys(o).forEach(function(r){ S[r] = (S[r] || 0) + o[r]; }); }
 /* ================= pixel art helpers ================= */
 var g = null;                                   // current 2d context (logical pixel units)
 function R(c, x, y, w, h){ g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); }
@@ -67,397 +96,340 @@ function townSprite(x, y){ R("#14261B", x - 8, y - 12, 16, 12); R("#F3E6C4", x -
 function gateSprite(x, y){ R("#8D6E63", x - 9, y - 14, 4, 14); R("#8D6E63", x + 5, y - 14, 4, 14); R("#C0392B", x - 10, y - 17, 20, 4); R("#F7C948", x - 5, y - 19, 10, 2); }
 function flagSprite(x, y){ R("#F3F7EA", x - 1, y - 20, 2, 20); R("#2E9B57", x + 1, y - 20, 9, 6); R("#F7C948", x - 3, y, 6, 2); }
 
-/* ================= HUD ================= */
+/* ================= HUD + popups ================= */
 var prevRes = null;
 function renderHud(){
-  var max = J.maxHp(S), pct = Math.max(0, Math.min(1, S.hp / max));
-  $("res").innerHTML = J.RES.map(function(r){ return '<div class="rc ' + r + '" id="rc-' + r + '"><i>' + RESN[r] + '</i><b>' + S.res[r] + '</b></div>'; }).join("");
-  if(prevRes) J.RES.forEach(function(r){ if(prevRes[r] !== S.res[r]){ var e = $("rc-" + r); e.classList.add("flash"); } });
-  prevRes = Object.assign({}, S.res);
+  var max = hpMax(), pct = Math.max(0, Math.min(1, S.hp / max));
+  $("res").innerHTML = [["coins", "Coins"], ["food", "Food"], ["mimosa", "Mimosa"], ["psilocybe", "Psilocybe"]].map(function(r){ return '<div class="rc ' + r[0] + '" id="rc-' + r[0] + '"><i>' + r[1] + '</i><b>' + S[r[0]] + '</b></div>'; }).join("") + '<div class="rc atk"><i>Attack</i><b>' + S.attack + '</b></div>';
+  if(prevRes) ["coins", "food", "mimosa", "psilocybe"].forEach(function(r){ if(prevRes[r] !== S[r]){ $("rc-" + r).classList.add("flash"); } });
+  prevRes = { coins: S.coins, food: S.food, mimosa: S.mimosa, psilocybe: S.psilocybe };
   $("hp-i").style.width = (pct * 100) + "%"; $("hp").className = "hp" + (pct < 0.3 ? " low" : pct < 0.6 ? " mid" : "");
-  $("hp-t").textContent = "Army " + S.hp + " / " + max + (S.rest ? " · resting " + fmtTime(J.restLeft(S, Date.now())) : "");
-  $("march").textContent = S.march; $("credit").textContent = J.credit(S); $("day").textContent = S.day;
+  $("hp-t").textContent = "Army health " + Math.round(S.hp) + " / " + max;
 }
-function hurt(){ var h = $("hp"); h.classList.remove("hurt"); void h.offsetWidth; h.classList.add("hurt"); }
-
-/* ================= CITY ================= */
-var COL = { Housing: "#E9D8A6", Production: "#7BC67A", Infrastructure: "#9ED0F0", Military: "#C8693D", Care: "#F3F7EA" };
-var PLOTS = ["bamboo", "timber", "quarry", "mycelium", "solar", "herohall", "barracks", "armory", "hospital"];
-var PLOT_XY = [[46, 38], [80, 36], [114, 38], [40, 50], [80, 49], [120, 50], [52, 62], [80, 62], [108, 62]];
-function drawBuilding(id, lv, x, y, t){
-  if(!lv){ g.fillStyle = "rgba(255,255,255,.55)"; [[-6, -6], [4, -6], [-6, 0], [4, 0]].forEach(function(o){ g.fillRect(x + o[0], y + o[1], 3, 1); g.fillRect(x + o[0] + (o[0] > 0 ? 2 : 0), y + o[1], 1, 3); }); return; }
-  var up = lv * 2;
-  switch(id){
-    case "bamboo": R("#14261B", x - 7, y - 9 - up, 14, 9 + up); R("#E9D8A6", x - 6, y - 8 - up, 12, 8 + up); R("#2E9B57", x - 8, y - 12 - up, 16, 4); R("#8D6E63", x - 1, y - 4, 3, 4); break;
-    case "timber": R("#5A3A22", x - 5, y - 4, 2, 4); R("#2E9B57", x - 8, y - 12 - up, 8, 9 + up); R("#5A3A22", x + 3, y - 4, 2, 4); R("#237A43", x - 1, y - 14 - up, 9, 11 + up); break;
-    case "quarry": R("#6F7C76", x - 8, y - 6 - up, 10, 6 + up); R("#9AA5A0", x - 2, y - 9 - up, 10, 9 + up); R("#C9D0CC", x - 2, y - 9 - up, 10, 2); break;
-    case "mycelium": R("#F3F7EA", x - 2, y - 6, 4, 6); R("#8E7DBE", x - 8, y - 12 - up, 16, 7); R("#F3F7EA", x - 5, y - 10 - up, 2, 2); R("#F3F7EA", x + 2, y - 9 - up, 2, 2); break;
-    case "solar": R("#14261B", x - 9, y - 8 - up, 18, 6); R("#3A7BD5", x - 8, y - 7 - up, 16, 4); R("#9ED0F0", x - 8, y - 7 - up, 16, 1); R("#5C7080", x - 1, y - 3, 2, 3); break;
-    case "herohall": R("#14261B", x - 8, y - 11 - up, 16, 11 + up); R("#9AA5A0", x - 7, y - 10 - up, 14, 10 + up); R("#C0392B", x - 2, y - 15 - up, 5, 4); R("#14261B", x - 2, y - 5, 4, 5); break;
-    case "barracks": R("#14261B", x - 9, y - 8 - up, 18, 8 + up); R("#C8693D", x - 8, y - 7 - up, 16, 7 + up); R("#8D4A13", x - 9, y - 11 - up, 18, 3); break;
-    case "armory": R("#14261B", x - 8, y - 8 - up, 16, 8 + up); R("#5C7080", x - 7, y - 7 - up, 14, 7 + up); R("#9AA5A0", x - 3, y - 5, 6, 2); break;
-    case "hospital": R("#14261B", x - 8, y - 9 - up, 16, 9 + up); R("#F3F7EA", x - 7, y - 8 - up, 14, 8 + up); R("#C0392B", x - 1, y - 7 - up, 3, 7); R("#C0392B", x - 3, y - 5 - up, 7, 3); break;
-  }
-  for(var i = 0; i < lv; i++) R("#F7C948", x - 8 + i * 4, y + 2, 3, 2);
-}
-var cityMeta = null;
-function drawCity(t){
-  var cv = $("cityCv"); if(!cv.offsetParent) return; var P = prep(cv, 160, 90); g = P.c; cityMeta = P;
-  for(var y = 0; y < 90; y += 6) R(y < 24 ? "#5BA8F5" : y < 48 ? "#8EC5FC" : y < 72 ? "#B5DAFF" : "#CFE9FF", 0, y, 160, 6);
-  R("#FFF3C4", 128, 10, 10, 10); R("#FFE08A", 130, 12, 6, 6);
-  for(var c = 0; c < 4; c++){ var cx = ((c * 53 + t / 90) % 200) - 20; R("#fff", cx, 14 + (c % 2) * 18, 16, 4); R("#fff", cx + 3, 11 + (c % 2) * 18, 9, 4); }
-  var bob = Math.round(Math.sin(t / 700) * 1.2);
-  for(var r = 0; r < 14; r++){ var w = 118 - r * 4; R(r % 4 === 0 ? "#8FD694" : "#6CC36C", 80 - w / 2, 28 + r + bob, w, 1); }
-  for(var u = 0; u < 22; u++){ var wu = 60 - u * 2.6; R(u % 5 === 0 ? "#8D6E63" : "#6E5040", 80 - wu / 2, 42 + u + bob, Math.max(2, wu), 1); }
-  for(var tf = 0; tf < 5; tf++) R("#5A3A22", 70 + tf * 5, 64 + tf * 4 + bob, 2, 4);
-  PLOTS.forEach(function(id, i){ drawBuilding(id, S.buildings[id], PLOT_XY[i][0], PLOT_XY[i][1] + 8 + bob, t); });
-}
-$("cityCv").addEventListener("click", function(e){
-  if(!cityMeta) return; var r = this.getBoundingClientRect(), lx = (e.clientX - r.left) / cityMeta.k, ly = (e.clientY - r.top) / cityMeta.k, best = -1, bd = 1e9;
-  PLOT_XY.forEach(function(p, i){ var d = Math.abs(lx - p[0]) + Math.abs(ly - p[1] - 2) * 1.5; if(d < bd){ bd = d; best = i; } });
-  if(best >= 0 && bd < 22){ var el = $("card-" + PLOTS[best]); if(el){ el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.remove("hi"); void el.offsetWidth; el.classList.add("hi"); sfx("tap"); } }
-});
-function costHtml(cost){ return '<div class="cost">' + Object.keys(cost).filter(function(r){ return cost[r]; }).map(function(r){ return '<span class="' + (S.res[r] < cost[r] ? "short" : "") + '">' + cost[r] + " " + RESN[r] + "</span>"; }).join("") + "</div>"; }
-function renderCards(){
-  $("cards").innerHTML = J.BUILDING_ORDER.map(function(id){
-    var b = J.BUILDINGS[id], lv = S.buildings[id], max = lv >= J.MAX_LEVEL, cost = max ? null : J.upgradeCost(id, lv), ok = !max && J.canAfford(S, cost), pips = "";
-    for(var i = 1; i <= J.MAX_LEVEL; i++) pips += '<i class="' + (i <= lv ? "on" : "") + '"></i>';
-    var puz = "";
-    if(b.puzzle){
-      var P = J.PUZZLES[b.puzzle], open = lv >= J.PUZZLE_UNLOCK_LEVEL;
-      puz = open ? '<div class="puz open"><span><b>' + P.name + '</b> unlocked' + (S.playedToday[b.puzzle] ? " · paid today" : " · pays today") + '</span><button class="btn small primary" data-act="play" data-p="' + b.puzzle + '">Play</button></div>'
-                 : '<div class="puz locked"><span>Level ' + J.PUZZLE_UNLOCK_LEVEL + ' unlocks <b>' + P.name + '</b></span></div>';
-    }
-    return '<div class="card bcard" id="card-' + id + '"><div class="top"><div><div class="grp">' + b.group + '</div><h3>' + b.name + '</h3></div><div class="pips" title="Level ' + lv + '">' + pips + '</div></div>' +
-      '<div class="note">' + b.note + '</div>' + puz +
-      (max ? '<div class="note"><b>Max level.</b></div>' : costHtml(cost) + '<button class="btn ' + (ok ? "primary" : "") + '" data-act="up" data-id="' + id + '"' + (ok ? "" : " disabled") + '>' + (lv ? "Upgrade to level " + (lv + 1) : "Build") + '</button>') + '</div>';
-  }).join("");
-}
-$("cards").addEventListener("click", function(e){
-  var b = e.target.closest("button"); if(!b) return; var act = b.getAttribute("data-act");
-  if(act === "up") doUpgrade(b.getAttribute("data-id")); else if(act === "play") invitePlay(b.getAttribute("data-p"));
-});
-function doUpgrade(id){
-  var r = J.upgrade(S, id); if(!r.ok){ toast(r.error); sfx("notquite"); return; }
-  persist(); sfx("stamp"); renderAll();
-  r.events.forEach(function(ev){ if(ev.type === "unlock"){ setTimeout(function(){ sfx("milestone"); invitePlay(ev.puzzle, true); }, 350); } });
-}
-
-/* ================= popups ================= */
+function hurtFx(){ var h = $("hp"); h.classList.remove("hurt"); void h.offsetWidth; h.classList.add("hurt"); }
 var popCb = null;
 function popup(o){
   $("pop-title").textContent = o.title; $("pop-body").innerHTML = o.html || ""; var f = $("pop-actions"); f.innerHTML = "";
   (o.buttons || [{ label: "OK", primary: true }]).forEach(function(b){ var x = document.createElement("button"); x.className = "btn" + (b.primary ? " primary" : "") + (b.danger ? " danger" : ""); x.textContent = b.label; x.onclick = function(){ $("dlg").close(); if(b.fn) b.fn(); }; f.appendChild(x); });
-  popCb = o.onPick || null; $("dlg").showModal();
+  $("dlg").onclose = function(){ if(o.onClose) o.onClose(); }; $("dlg").showModal();
 }
-$("pop-body").addEventListener("click", function(e){ var b = e.target.closest("[data-d]"); if(b && popCb){ var d = b.getAttribute("data-d"); $("dlg").close(); popCb(d); } });
-function invitePlay(puzzle, fresh){
-  var P = J.PUZZLES[puzzle], sug = J.suggestedDifficulty(S), paid = S.playedToday[puzzle], hb = J.heroBonus(S, puzzle);
-  var btns = ["easy", "normal", "hard"].map(function(d){ var rw = J.puzzleReward(S, puzzle, d); return '<button class="btn' + (d === sug ? " sug" : "") + '" data-d="' + d + '">' + d[0].toUpperCase() + d.slice(1) + '<small>' + (paid ? "practice" : sum(rw) + " resources") + '</small></button>'; }).join("");
-  popup({ title: fresh ? "New puzzle: " + P.name + "!" : "Play " + P.name,
-    html: '<p>' + (fresh ? "Your upgrade opened a new puzzle. " : "") + P.blurb + ' Solving it pays the city' + (paid ? " (today's reward is already earned, so this one is practice)" : "") + ' and gives <b>1 march point</b>.</p><p>Your heroes add <b>+' + hb.hints + ' hint' + (hb.hints === 1 ? "" : "s") + '</b>' + (hb.seconds ? ' and <b>+' + hb.seconds + ' seconds</b>' : "") + '.</p><div class="diffs">' + btns + '</div>',
-    buttons: [{ label: "Later" }], onPick: function(d){ openPuzzle({ puzzle: puzzle, difficulty: d }); } });
+/* ================= WORLD MAP (overworld) ================= */
+var WY = [150, 330, 510, 690, 870], WX = [62, 30, 66, 32, 60], WH = 1010;
+var wbg = null, wW = 0;
+function unlocked(id){ return id === 1 || !!S.done[id - 1]; }
+function curIdx(){ for(var i = 0; i < LEVELS.length; i++) if(!S.done[LEVELS[i].id]) return i; return LEVELS.length - 1; }
+function wpts(W){ var P = [{ x: W * 0.5, y: 46 }].concat(LEVELS.map(function(l, i){ return { x: W * WX[i] / 100, y: WY[i] }; })), out = [];
+  for(var i = 0; i < P.length - 1; i++){ var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    for(var s = 0; s < 40; s++){ var t = s / 40, t2 = t * t, t3 = t2 * t; out.push({ x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3), y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3) }); } }
+  out.push(P[P.length - 1]); return out;
 }
-
-/* ================= ARMY ================= */
-function renderArmy(){
-  var max = J.maxHp(S), troops = S.troops, credit = Math.floor(J.credit(S) / 10), wb = Math.round(30 * J.wellbeing(S)), tr = 5 * S.trophies.length, rest = S.rest ? J.restLeft(S, Date.now()) : 0, rs = J.restSeconds(S);
-  var heroes = Object.keys(J.HEROES).map(function(h){
-    var H = J.HEROES[h], lv = S.heroes[h], c = J.heroCost(S, h), capped = lv >= J.heroMaxLevel(S), gate = lv + 1 === J.GATE_LEVEL;
-    var btn = lv >= J.HERO_MAX ? '<b>Max level</b>' : '<button class="btn small" data-act="hero" data-h="' + h + '"' + (S.buildings.herohall && !capped ? "" : " disabled") + '>Level up · ' + c + ' Food' + (gate ? " + 1 Psilocybe" : "") + '</button>';
-    return '<div class="card hero"><div class="grp">' + H.puzzles.map(function(p){ return J.PUZZLES[p].name; }).join(" · ") + '</div><h3>' + H.name + '</h3><div class="lv">Level ' + lv + '</div><div class="note">' + (lv >= 1 ? "+1 hint in its puzzles" : "") + (lv >= 3 ? ", +30 seconds" : ", level 3 adds +30 seconds") + '</div><div style="margin-top:8px">' + (S.buildings.herohall ? btn : '<span class="note">Build the Hero hall to level up.</span>') + (S.buildings.herohall && capped && lv < J.HERO_MAX ? '<div class="note">Upgrade the Hero hall for more levels.</div>' : "") + '</div></div>';
-  }).join("");
-  $("v-army").innerHTML =
-    '<div class="card"><h2>Army health</h2><div class="note">The army is your heroes\' health. Fights drain it; the Hospital heals it.</div>' +
-    '<div class="statgrid"><div class="stat"><i>Health</i><b>' + S.hp + ' / ' + max + '</b></div><div class="stat"><i>Attack power</i><b>' + J.attackPower(S) + '</b></div><div class="stat"><i>Armor</i><b>-' + Math.round(J.armorReduction(S) * 100) + '% damage</b></div><div class="stat"><i>Citizens housed</i><b>' + Math.round(J.wellbeing(S) * 100) + '%</b></div></div>' +
-    '<p class="note" style="margin:8px 0 0">Max health = 40 base + ' + 2 * troops + ' troops + ' + credit + ' Credit + ' + wb + ' citizens + ' + tr + ' trophies = <b>' + max + '</b>. Citizen wellbeing is a placeholder until real citizens arrive (it follows Bamboo homes).</p></div>' +
-    '<div class="sect card"><h3>Hospital</h3>' + (S.buildings.hospital ? (S.rest ? '<div class="restbar"><i style="width:' + Math.round(100 * (1 - rest / rs)) + '%"></i></div><p class="note">Resting… ' + fmtTime(rest) + ' left. Marching is paused.</p>' : '<p class="note">One short rest (' + fmtTime(rs) + ') heals the whole army.</p><button class="btn primary" data-act="rest"' + (S.hp >= max ? " disabled" : "") + '>' + (S.hp >= max ? "Army is healthy" : "Rest the army") + '</button>') : '<p class="note">Build the Hospital in the City to heal the army.</p>') + '</div>' +
-    '<div class="sect card"><h3>Barracks and Armory</h3><div class="statgrid"><div class="stat"><i>Troops</i><b>' + S.troops + ' / ' + J.troopCap(S) + '</b></div><div class="stat"><i>Armor pieces</i><b>' + S.armor + ' / ' + J.armorCap(S) + '</b></div></div><div class="marchbar" style="margin-top:10px"><button class="btn" data-act="train">Train ' + J.TROOPS_PER_TRAIN + ' troops · ' + J.TRAIN_FOOD + ' Food</button><button class="btn" data-act="forge">Forge armor · ' + J.ARMOR_METAL + ' Metal</button></div></div>' +
-    '<div class="sect"><h3>Heroes</h3><div class="herocards">' + heroes + '</div></div>' +
-    '<div class="sect card"><h3>Mimosa and Psilocybe</h3><p class="note">Found on the road. <b>Mimosa</b> gives +1 hint in every puzzle for the rest of the day (you have ' + S.res.mimosa + '). <b>Psilocybe</b> is spent automatically when a hero reaches level ' + J.GATE_LEVEL + ' (you have ' + S.res.psilocybe + ').</p><button class="btn" data-act="mimosa"' + (S.mimosaDay === S.day ? " disabled" : "") + '>' + (S.mimosaDay === S.day ? "Mimosa active today" : "Use 1 Mimosa") + '</button></div>' +
-    '<div class="sect card"><h3>Trophies</h3>' + (S.trophies.length ? '<div class="trophies">' + S.trophies.map(function(t){ return "<span>" + esc(t) + " · +5 max health</span>"; }).join("") + "</div>" : '<p class="note">Beat a big boss to earn one.</p>') + '</div>';
-}
-$("v-army").addEventListener("click", function(e){
-  var b = e.target.closest("button"); if(!b) return; var a = b.getAttribute("data-act"), r;
-  if(a === "train") r = J.trainTroops(S); else if(a === "forge") r = J.forgeArmor(S); else if(a === "hero") r = J.levelHero(S, b.getAttribute("data-h"));
-  else if(a === "mimosa") r = J.useMimosa(S); else if(a === "rest"){ r = J.startRest(S, Date.now()); if(r.ok) sfx("pageflip"); }
-  else return;
-  if(!r.ok){ toast(r.error); sfx("notquite"); return; } if(a !== "rest") sfx(a === "hero" ? "milestone" : "collect"); persist(); renderAll();
-});
-
-/* ================= ROAD: isometric free walk ================= */
-var TW = 22, TH = 11, SPEED = 62, WALK = 2.9;
-var REGION = { VN: { n: "Red River Delta", lv: "Easy", r: 1, b: "jungle" }, LA: { n: "Mekong Highlands", lv: "Easy", r: 2, b: "jungle" }, KH: { n: "Tonlé Sap Basin", lv: "Normal", r: 3, b: "jungle" },
-  TH: { n: "Chao Phraya Marshes", lv: "Normal", r: 4, b: "swamp" }, MY: { n: "Strait Jungles", lv: "Hard", r: 5, b: "swamp" }, ID: { n: "Ring of Fire Isles", lv: "Hard", r: 6, b: "volcano" } };
-var BIOME = { jungle: { a: "#6FBF6A", b: "#63B25F", rock: "#3F7A3F", bg: "#27422D" }, swamp: { a: "#6AA89A", b: "#5C9A8C", rock: "#33645B", bg: "#1D3735" }, volcano: { a: "#7C6757", b: "#6E5A4B", rock: "#3A2E28", bg: "#241716" } };
-var NP = J.ROAD.map(function(n, k){ return { x: 7 + 6.6 * k, y: 16 + 7.5 * Math.sin(k * 0.72) }; });
-var STAGE = (function(){ var cnt = {}, out = []; J.ROAD.forEach(function(n){ cnt[n.country] = (cnt[n.country] || 0) + 1; out.push(REGION[n.country].r + "-" + cnt[n.country]); }); return out; })();
-function near(x, y){
-  var best = 1e9, bp = 0;
-  for(var k = 0; k < NP.length - 1; k++){ var a = NP[k], b = NP[k + 1], dx = b.x - a.x, dy = b.y - a.y, t = ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy); t = t < 0 ? 0 : t > 1 ? 1 : t; var px = a.x + dx * t - x, py = a.y + dy * t - y, d = Math.sqrt(px * px + py * py); if(d < best){ best = d; bp = k + t; } }
-  return { d: best, p: bp };
-}
-function along(p){ var k = Math.min(NP.length - 2, Math.max(0, Math.floor(p))), t = p - k, a = NP[k], b = NP[k + 1]; return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
-function hash(x, y){ var h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; return (h ^ (h >>> 13)) >>> 0; }
-var tcache = {};
-function tinfo(gx, gy){ var key = gx * 4096 + gy, c = tcache[key]; if(!c){ var n = near(gx, gy); c = tcache[key] = { d: n.d, p: n.p, h: hash(gx, gy) % 1000 }; } return c; }
-var pos = { x: NP[S.node].x, y: NP[S.node].y }, cam = null, keys = {}, joy = null, lastBand = -1, banner = { t: -9, text: "" }, lastAct = "", walkT = 0, hintOnce = {};
-function placeAt(k){ pos.x = NP[k].x; pos.y = NP[k].y; cam = null; lastBand = -1; }
-function canAdvance(){ return !S.rest && S.hp > 0 && !J.pending(S) && J.nodeAt(S.node).type !== "end" && S.march >= 1; }
-function limitP(){ return S.node + (canAdvance() ? 1 : 0); }
-function curP(){ return near(pos.x, pos.y).p; }
-function enemyPos(k){ return along(k + 0.16); }
-function tree(x, y, kind, h){
-  if(kind === "tree"){ R("#5A3A22", x - 1, y - 5, 2, 5); R("#237A43", x - 5, y - 9, 10, 4); R("#2E8B4E", x - 5, y - 14, 10, 6); R("#3FA55F", x - 3, y - 16, 6, 3); }
-  else if(kind === "dead"){ R("#4A3A33", x - 1, y - 13, 2, 13); R("#4A3A33", x - 5, y - 10, 4, 1); R("#4A3A33", x + 1, y - 8, 5, 1); R("#4A3A33", x - 3, y - 13, 1, 3); }
-  else if(kind === "spike"){ R("#2B2220", x - 3, y - 9, 6, 9); R("#443632", x - 2, y - 13, 4, 4); R("#E4572E", x - 5, y - 1, 10, 1); }
-  else { R("#7B8780", x - 5, y - 5, 10, 5); R("#A0AAA4", x - 4, y - 7, 6, 2); }
-}
-function tileDiamond(sx, sy, col){ g.fillStyle = col; g.beginPath(); g.moveTo(sx, sy - TH / 2 - 0.5); g.lineTo(sx + TW / 2 + 0.5, sy); g.lineTo(sx, sy + TH / 2 + 0.5); g.lineTo(sx - TW / 2 - 0.5, sy); g.closePath(); g.fill(); }
-function isoX(gx, gy){ return (gx - gy) * TW / 2; } function isoY(gx, gy){ return (gx + gy) * TH / 2; }
-function roadFrame(t){
-  var cv = $("roadCv"); if(!cv.offsetParent) return;
-  var dpr = Math.min(3, window.devicePixelRatio || 1), cssW = cv.parentNode.clientWidth || 320, cssH = Math.round(Math.max(300, Math.min(440, window.innerHeight * 0.5)));
-  var k = Math.max(2.6, Math.min(3.6, cssW / 150)), VW = cssW / k, VH = cssH / k;
-  if(cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)){ cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + "px"; }
-  var c = cv.getContext("2d"); c.imageSmoothingEnabled = false; g = c;
-  var dt = Math.min(0.05, (t - (roadFrame.last || t)) / 1000); roadFrame.last = t; update(dt, t);
-  var np = near(pos.x, pos.y), band = Math.min(J.ROAD.length - 1, Math.round(np.p)), reg = REGION[J.ROAD[band].country], bio = BIOME[reg.b];
-  if(band !== lastBand){ var oc = lastBand < 0 ? null : J.ROAD[lastBand].country; lastBand = band; if(J.ROAD[band].country !== oc){ banner = { t: t, text: "Region " + reg.r + " · " + reg.n + " · " + reg.lv }; } }
-  var px = isoX(pos.x, pos.y), py = isoY(pos.x, pos.y); if(!cam) cam = { x: px, y: py }; cam.x += (px - cam.x) * 0.12; cam.y += (py - cam.y) * 0.12;
-  c.setTransform(dpr * k, 0, 0, dpr * k, 0, 0); g.fillStyle = bio.bg; g.fillRect(0, 0, VW, VH);
-  var ox = Math.round(VW / 2 - cam.x), oy = Math.round(VH / 2 - cam.y + 6); c.translate(ox, oy);
-  var objs = [], cx = Math.round(pos.x), cy = Math.round(pos.y), R0 = Math.ceil(Math.max(VW / TW, VH / TH)) + 4;
-  for(var gx = cx - R0; gx <= cx + R0; gx++){ for(var gy = cy - R0; gy <= cy + R0; gy++){
-    var sx = isoX(gx, gy), sy = isoY(gx, gy); if(sx + ox < -TW || sx + ox > VW + TW || sy + oy < -TH * 3 || sy + oy > VH + TH * 3) continue;
-    var ti = tinfo(gx, gy); if(ti.d > 5.8) continue; var bb = BIOME[REGION[J.ROAD[Math.min(J.ROAD.length - 1, Math.round(ti.p))].country].b], chk = (gx + gy) & 1;
-    if(ti.d < 1.3 + (ti.h % 3) * 0.2){ tileDiamond(sx, sy, ti.d > 1.0 ? "#CDAA6A" : chk ? "#E6C98E" : "#DDBD7F"); }
-    else if(ti.d < 3.3){ tileDiamond(sx, sy, chk ? bb.a : bb.b); if(ti.h % 23 === 0) objs.push({ z: gx + gy + 0.3, f: (function(a, b){ return function(){ R("#F7C948", a, b - 2, 1, 1); R("#fff", a + 2, b - 1, 1, 1); }; })(sx, sy) }); }
-    else { var lava = bb.rock === "#3A2E28" && ti.h % 5 === 0; tileDiamond(sx, sy, lava ? (Math.floor(t / 400 + ti.h) % 2 ? "#E4572E" : "#C8401F") : bb.rock);
-      if(!lava && ti.h % 100 < 58){ var kind = bb.rock === "#3F7A3F" ? (ti.h % 7 === 0 ? "rock" : "tree") : bb.rock === "#33645B" ? (ti.h % 4 === 0 ? "rock" : "dead") : (ti.h % 3 === 0 ? "rock" : "spike"); objs.push({ z: gx + gy + 0.5, f: (function(a, b, kk){ return function(){ tree(Math.round(a), Math.round(b + 3), kk); }; })(sx, sy, kind) }); } }
-  } }
-  J.ROAD.forEach(function(n, idx){
-    var p = NP[idx], sx = isoX(p.x, p.y), sy = isoY(p.x, p.y), done = S.cleared[n.id];
-    if(sx + ox < -40 || sx + ox > VW + 40 || sy + oy < -50 || sy + oy > VH + 50) return;
-    if(n.type === "start") objs.push({ z: p.x + p.y - 1, f: function(){ gateSprite(Math.round(sx), Math.round(sy + 4)); } });
-    else if(n.type === "end") objs.push({ z: p.x + p.y, f: function(){ flagSprite(Math.round(sx), Math.round(sy + 4)); } });
-    else if(n.type === "town") objs.push({ z: p.x + p.y - 1, f: function(){ townSprite(Math.round(sx), Math.round(sy - 2)); campfire(Math.round(sx + 14), Math.round(sy + 6), t); } });
-    else if(n.give){ if(!done) objs.push({ z: p.x + p.y, f: function(){ pickup(pickupKind(n), Math.round(sx), Math.round(sy + 4), t); } }); }
-    else if(n.enemy || n.boss){ var ep = enemyPos(idx), ex = Math.round(isoX(ep.x, ep.y)), ey = Math.round(isoY(ep.x, ep.y) + 4);
-      if(!done) objs.push({ z: ep.x + ep.y, f: function(){ var isB = !!n.boss, sw = !isB && n.type !== "mini";
-        if(sw){ [[-9, 2, 0.65], [8, 3, 0.65], [0, -2, 0.8]].forEach(function(o){ g.save(); g.translate(ex + o[0], ey + o[1]); g.scale(o[2], o[2]); critter(ART[n.id], 0, 0, t + o[0] * 40); g.restore(); }); }
-        else { g.save(); g.translate(ex, ey); g.scale(isB ? 1 : 0.9, isB ? 1 : 0.9); critter(ART[n.id], 0, 0, t); g.restore(); }
-        var bob = Math.round(Math.sin(t / 150)); R("#C0392B", ex - 3, ey - 34 + bob, 7, 7); R("#fff", ex, ey - 33 + bob, 1, 3); R("#fff", ex, ey - 29 + bob, 1, 1);
-        if(isB){ R("#F7C948", ex - 5, ey - 42, 11, 2); R("#F7C948", ex - 5, ey - 45, 2, 3); R("#F7C948", ex, ey - 46, 2, 4); R("#F7C948", ex + 4, ey - 45, 2, 3); } } }); }
+function hillS(x, y, w, h, c1, c2){ for(var r = 0; r < h; r++){ var ww = Math.round(w * Math.sqrt(1 - Math.pow(1 - r / h, 2))); R(r < 2 ? c2 : c1, x - ww / 2, y - h + r, ww, 1); } }
+function treeS(x, y, c){ R("#5A3A22", x - 1, y - 6, 3, 6); R("#237A43", x - 6, y - 12, 13, 7); R(c || "#2E8B4E", x - 5, y - 17, 11, 8); R("#3FA55F", x - 3, y - 19, 6, 3); }
+function palmS(x, y){ R("#8D6E63", x, y - 14, 2, 14); R("#2E8B4E", x - 6, y - 17, 7, 2); R("#2E8B4E", x + 2, y - 17, 7, 2); R("#3FA55F", x - 3, y - 19, 8, 2); }
+function cloudS(x, y){ R("#fff", x, y, 18, 4); R("#fff", x + 3, y - 3, 10, 4); R("#DCEBFF", x, y + 3, 18, 1); }
+function pondS(x, y, w){ for(var r = -3; r <= 3; r++){ var ww = Math.round(w * Math.sqrt(1 - r * r / 16)); R(Math.abs(r) === 3 ? "#7DBBE8" : "#4FA3D9", x - ww / 2, y + r, ww, 1); } R("#CFE9FF", x - w / 4, y - 1, 4, 1); }
+function lavaS(x, y, w){ for(var r = -3; r <= 3; r++){ var ww = Math.round(w * Math.sqrt(1 - r * r / 16)); R(Math.abs(r) === 3 ? "#F7C948" : "#E4572E", x - ww / 2, y + r, ww, 1); } }
+function coneS(x, y){ for(var r = 0; r < 18; r++){ R(r < 3 ? "#E4572E" : "#4A3A34", x - 3 - r * 0.8, y - 18 + r, 6 + r * 1.6, 1); } }
+function buildWorld(){
+  var wrap = $("worldwrap"), W = Math.max(280, Math.min(520, wrap.clientWidth || 360)); wW = W; wrap.style.height = WH + "px";
+  var cv = $("worldCv"), ps = 3, lw = Math.ceil(W / ps), lh = Math.ceil(WH / ps); cv.width = lw; cv.height = lh; cv.style.height = WH + "px";
+  var off = document.createElement("canvas"); off.width = lw; off.height = lh; var oc = off.getContext("2d"); var keep = g; g = oc;
+  var pts = wpts(W), rd = rng(99);
+  function nearIdx(y){ var bi = 0, bd = 1e9; WY.forEach(function(wy, i){ var d = Math.abs(wy - y); if(d < bd){ bd = d; bi = i; } }); return bi; }
+  for(var ty = 0; ty < lh; ty += 4) for(var tx = 0; tx < lw; tx += 4){ var l = LEVELS[nearIdx(ty * ps)], pl = PAL[l.pal]; R(((tx + ty) >> 2) % 2 ? pl.map : shade(pl.map, -10), tx, ty, 4, 4); }
+  function far(x, y, d){ for(var i = 0; i < pts.length; i += 2){ var dx = pts[i].x - x, dy = pts[i].y - y; if(dx * dx + dy * dy < d * d) return false; } for(var j = 0; j < WY.length; j++) if(Math.abs(WY[j] - y) < 52 && Math.abs(WX[j] * W / 100 - x) < 230) return false; return true; }
+  for(var a = 0; a < 140; a++){ var x = 14 + rd() * (W - 28), y = 20 + rd() * (WH - 40); if(!far(x, y, 46)) continue; var li = nearIdx(y), pal = LEVELS[li].pal, lx = x / ps, ly = y / ps, q = rd();
+    if(pal === "jungle" || pal === "highland") { if(q < 0.5) treeS(lx, ly); else if(q < 0.75) hillS(lx, ly, 26, 12, PAL[pal].hill1, "#A9E5AE"); else if(q < 0.9) pondS(lx, ly, 22); else cloudS(lx, ly - 4); }
+    else if(pal === "dusk"){ if(q < 0.4) palmS(lx, ly); else if(q < 0.7) hillS(lx, ly, 28, 11, "#D9A15E", "#F0C27E"); else pondS(lx, ly, 20); }
+    else if(pal === "marsh"){ if(q < 0.5) pondS(lx, ly, 30); else if(q < 0.8) treeS(lx, ly, "#3E9A83"); else hillS(lx, ly, 22, 9, "#4F9E8E", "#7FBFAE"); }
+    else { if(q < 0.4) coneS(lx, ly); else if(q < 0.75) lavaS(lx, ly, 26); else hillS(lx, ly, 24, 10, "#5A3A33", "#7A5A4F"); } }
+  pts.forEach(function(p){ R("#9C6F2E", p.x / ps - 6, p.y / ps - 6, 12, 12); }); pts.forEach(function(p){ R("#F2D79B", p.x / ps - 5, p.y / ps - 5, 10, 10); });
+  var gx = W * 0.5 / ps, gy = 46 / ps; gateSprite(Math.round(gx), Math.round(gy + 10));
+  var last = pts[pts.length - 1]; flagSprite(Math.round(last.x / ps + 14), Math.round(last.y / ps + 8));
+  g = keep; wbg = off;
+  var nodes = $("worldNodes"); nodes.innerHTML = "";
+  LEVELS.forEach(function(l, i){
+    var ok = unlocked(l.id), done = !!S.done[l.id], b = document.createElement("button"); b.className = "wnode" + (done ? " done" : !ok ? " lock" : "") + (i === curIdx() && !done ? " cur" : ""); b.style.left = WX[i] + "%"; b.style.top = WY[i] + "px";
+    b.setAttribute("aria-label", "Level " + l.id + " " + l.name); b.textContent = done ? "✓" : ok ? String(l.id) : "\u{1F512}"; b.onclick = function(){ openLevelCard(l); }; nodes.appendChild(b);
+    var lb = document.createElement("div"), right = WX[i] < 50; lb.className = "nlabel" + (ok ? "" : " lock"); lb.style.top = WY[i] + "px";
+    if(right) lb.style.left = "calc(" + WX[i] + "% + 40px)"; else lb.style.right = "calc(" + (100 - WX[i]) + "% + 40px)";
+    lb.innerHTML = "<b>" + l.id + ". " + esc(l.name) + "</b><small>" + esc(l.country) + " · " + l.lv + "</small><span class='tag'>" + (done ? "Cleared" : PNAME[l.boss.puzzle] + " boss") + "</span>"; nodes.appendChild(lb);
   });
-  var tired = !canAdvance() && !J.pending(S) && J.nodeAt(S.node).type !== "end" && np.p >= S.node - 0.05;
-  if(tired){ var cp = along(S.node); objs.push({ z: cp.x + cp.y + 0.2, f: function(){ campfire(Math.round(isoX(cp.x + 0.8, cp.y + 0.2)), Math.round(isoY(cp.x + 0.8, cp.y + 0.2) + 3), t); } }); }
-  objs.push({ z: pos.x + pos.y + 0.1, f: function(){ var sx = Math.round(isoX(pos.x, pos.y)), sy = Math.round(isoY(pos.x, pos.y)); R("rgba(20,38,27,.3)", sx - 10, sy + 1, 20, 2); party(sx, sy, walkT > 0 ? t : 0); } });
-  objs.sort(function(a, b){ return a.z - b.z; }); objs.forEach(function(o){ o.f(); });
-  c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // joystick + banner (css px)
-  var bx = 62, by = cssH - 62; c.globalAlpha = joy ? 0.9 : 0.45; if(joy){ bx = joy.x0; by = joy.y0; }
-  c.fillStyle = "rgba(20,38,27,.35)"; c.beginPath(); c.arc(bx, by, 34, 0, 7); c.fill(); c.strokeStyle = "#FBF7EA"; c.lineWidth = 2; c.stroke();
-  c.fillStyle = "#FBF7EA"; c.beginPath(); c.arc(joy ? joy.x0 + joy.dx * 28 : bx, joy ? joy.y0 + joy.dy * 28 : by, 13, 0, 7); c.fill(); c.globalAlpha = 1;
-  var age = (t - banner.t) / 1000; if(age >= 0 && age < 3.2){ c.globalAlpha = Math.min(1, 3.2 - age, age * 4); c.fillStyle = "rgba(20,38,27,.82)"; c.fillRect(0, 22, cssW, 44); c.fillStyle = "#F7C948"; c.font = "22px VT323, monospace"; c.textAlign = "center"; c.fillText(banner.text, cssW / 2, 51); c.textAlign = "left"; c.globalAlpha = 1; }
-  if(!joy && !hintOnce.joy && S.node === 0 && S.cleared[1] !== true){ c.fillStyle = "rgba(20,38,27,.8)"; c.font = "18px VT323, monospace"; c.textAlign = "center"; c.fillText("Drag to walk (or use arrow keys / WASD)", cssW / 2, cssH - 14); c.textAlign = "left"; }
 }
-function campfire(x, y, t){ R("#5A3A22", x - 4, y - 1, 8, 2); var f = Math.floor(t / 130) % 2; R("#E4572E", x - 2, y - 5 - f, 4, 4 + f); R("#F7C948", x - 1, y - 4, 2, 3); }
-function update(dt, t){
-  if(settings.tab !== "road" || document.querySelector("dialog[open]") || $("overlay").classList.contains("show") || $("fightov").classList.contains("show")){ walkT = 0; syncAct(); return; }
-  var dx = 0, dy = 0, str = 0;
-  if(joy){ dx = joy.dx; dy = joy.dy; str = joy.m; }
-  else { if(keys.ArrowLeft || keys.a) dx -= 1; if(keys.ArrowRight || keys.d) dx += 1; if(keys.ArrowUp || keys.w) dy -= 1; if(keys.ArrowDown || keys.s) dy += 1; var l = Math.sqrt(dx * dx + dy * dy); if(l){ dx /= l; dy /= l; str = 1; } }
-  walkT = str > 0.05 ? walkT + dt : 0;
-  if(str > 0.05){
-    var sp = SPEED * str * dt, gvx = (dx / (TW / 2) + dy / (TH / 2)) / 2 * sp, gvy = (dy / (TH / 2) - dx / (TW / 2)) / 2 * sp, lim = limitP();
-    function ok(x, y){ var n = near(x, y); return n.d <= WALK && n.p <= lim + 0.0001; }
-    if(ok(pos.x + gvx, pos.y + gvy)){ pos.x += gvx; pos.y += gvy; } else if(ok(pos.x + gvx, pos.y)) pos.x += gvx; else if(ok(pos.x, pos.y + gvy)) pos.y += gvy;
-    hintOnce.joy = true;
+function shade(hex, d){ var n = parseInt(hex.slice(1), 16), r = Math.max(0, Math.min(255, (n >> 16) + d)), gg = Math.max(0, Math.min(255, ((n >> 8) & 255) + d)), b = Math.max(0, Math.min(255, (n & 255) + d)); return "#" + ((1 << 24) + (r << 16) + (gg << 8) + b).toString(16).slice(1); }
+function worldFrame(t){
+  var cv = $("worldCv"); if(!cv.offsetParent) return; if(!wbg || Math.abs($("worldwrap").clientWidth - wW) > 2 && $("worldwrap").clientWidth > 280) buildWorld();
+  var c = cv.getContext("2d"); c.imageSmoothingEnabled = false; c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(wbg, 0, 0); g = c;
+  var i = curIdx(), x = Math.round(wW * WX[i] / 100 / 3), y = Math.round(WY[i] / 3) - 12; party(x, y, t);
+}
+function openLevelCard(l){
+  if(!unlocked(l.id)){ sfx("notquite"); toast("Finish " + LEVELS[l.id - 2].name + " first."); return; }
+  sfx("tap"); var done = !!S.done[l.id];
+  popup({ title: "Region " + l.id + ": " + l.name, html: "<p class='note'>" + esc(l.country) + " · " + l.lv + (done ? " · cleared" : "") + "</p><p>Run through the level, stomp creatures, hit <b>?</b> blocks and reach the castle. The boss there challenges you to <b>" + PNAME[l.boss.puzzle] + "</b>: the <b>" + esc(l.boss.name) + "</b>.</p>",
+    buttons: [{ label: "Not yet" }, { label: done ? "Play again" : "Enter level", primary: true, fn: function(){ enterLevel(l); } }] });
+}
+/* ================= LEVEL (side-scroller) ================= */
+var TS = 16, GY = 9, VHL = 192, RUN = 88, GRAV = 900, JUMPV = 305;
+var L = null, P = null, cam = 0, camInit = false, inp = { l: false, r: false, j: false }, jumpHeld = false, fx = [], hist = [], resting = null, bossCool = 0, lvPaused = false;
+function build(def){
+  var r = rng(def.id * 7919 + 13), N = def.len, tiles = {}, qs = [], pipes = [], enemies = [], coins = [], eid = 0, qi = 0, items = ["mimosa", "coin", "psilocybe", "coin", "food", "coin", "coin", "coin"];
+  var tent = Math.floor(N * 0.45), miniAt = def.mini ? Math.floor(N * 0.72) : -99, x = 10;
+  function pw(){ return Math.round(def.power[0] + r() * (def.power[1] - def.power[0])); }
+  function addE(kind, type, tx, power, range){ var b = ENEMY_BOX[type]; enemies.push({ id: "e" + (eid++), kind: kind, type: type, power: power, x: tx * TS, y: GY * TS - b[1], w: b[0], h: b[1], dir: r() < 0.5 ? -1 : 1, sp: type === "creature" ? 20 : type === "army" ? 15 : 12, min: tx * TS - range, max: tx * TS + range, alive: true }); }
+  if(def.mini) addE(def.mini, "mini", miniAt, Math.round(def.power[1] * 1.55), 14);
+  while(x < N - 16){
+    if(x > tent - 4 && x < tent + 6){ x = tent + 6; continue; } if(def.mini && x > miniAt - 5 && x < miniAt + 5){ x = miniAt + 5; continue; }
+    var f = r();
+    if(f < 0.3){ var n = 3 + Math.floor(r() * 3), y = GY - 4; for(var i = 0; i < n; i++){ var q = i % 2 === 1, t = { kind: q ? "q" : "brick", x: x + i, y: y, used: false, bump: 0, id: "b" + (x + i) }; if(q) t.item = items[qi++ % items.length]; tiles[y * 1000 + x + i] = t; if(q) qs.push(t); }
+      if(r() < 0.5) addE(def.crit[Math.floor(r() * def.crit.length)], "creature", x + 1, pw(), 24); x += n + 3 + Math.floor(r() * 3); }
+    else if(f < 0.5){ pipes.push({ x: x, h: 2 }); for(var hh = 0; hh < 2; hh++){ tiles[(GY - 1 - hh) * 1000 + x] = { kind: "pipe" }; tiles[(GY - 1 - hh) * 1000 + x + 1] = { kind: "pipe" }; } x += 6 + Math.floor(r() * 3); }
+    else if(f < 0.78){ addE(def.crit[Math.floor(r() * def.crit.length)], "creature", x, pw(), 20 + Math.round(r() * 16)); x += 5 + Math.floor(r() * 3); }
+    else if(f < 0.9){ addE(def.army, "army", x, Math.round(def.power[1] * 1.2), 14); x += 7 + Math.floor(r() * 3); }
+    else { for(var c = 0; c < 5; c++) coins.push({ id: "c" + x + "_" + c, x: (x + c) * TS + 4, y: (GY - 2) * TS - Math.sin(c / 4 * Math.PI) * 22, got: false }); x += 7; }
   }
-  var p = curP();
-  if(canAdvance() && p >= S.node + 1 - 0.05) arrive();
-  else if(!canAdvance() && !J.pending(S) && p >= S.node - 0.05 && J.nodeAt(S.node).type !== "end" && !hintOnce["t" + S.node + S.day + S.march]){ hintOnce["t" + S.node + S.day + S.march] = true; toast(S.rest ? "The army is resting at the hospital." : S.hp <= 0 ? "The army has no health left." : "The army is too tired. Solve a puzzle or start a new day for energy."); }
+  var cx0 = (N - 10) * TS, bx = ENEMY_BOX.boss; enemies.push({ id: "boss", kind: def.boss.kind, type: "boss", power: 0, x: cx0 + 60, y: GY * TS - bx[1], w: bx[0], h: bx[1], dir: -1, sp: 0, min: 0, max: 0, alive: !S.done[def.id] || true });
+  var save = S.lv[def.id] || { got: {}, cp: 0 }; S.lv[def.id] = save;
+  qs.forEach(function(q){ if(save.got[q.id]) q.used = true; }); coins.forEach(function(c){ if(save.got[c.id]) c.got = true; }); enemies.forEach(function(e){ if(save.got[e.id]) e.alive = false; });
+  return { def: def, N: N, tiles: tiles, qs: qs, pipes: pipes, enemies: enemies, coins: coins, tent: tent * TS, castle: cx0, save: save, bushes: Array.apply(0, Array(Math.floor(N / 5))).map(function(_, i){ return { x: (i * 5 + Math.floor(r() * 4)) * TS, k: Math.floor(r() * 3) }; }) };
+}
+function enterLevel(def){
+  L = build(def); P = { x: (L.save.cp || 2 * TS), y: GY * TS - 13, vx: 0, vy: 0, w: 9, h: 13, on: true, face: 1, inv: 0 }; camInit = false; fx = []; hist = []; resting = null; bossCool = 0; lvPaused = false;
+  $("v-world").classList.remove("show"); $("v-level").classList.add("show"); $("lv-name").textContent = def.id + ". " + def.name + " · " + def.country; window.scrollTo(0, 0); sfx("whoosh");
+  if(!L.save.seen){ L.save.seen = true; persist(); }
+}
+function leaveLevel(){ L = null; $("v-level").classList.remove("show"); $("v-world").classList.add("show"); buildWorld(); renderHud(); }
+function solid(tx, ty){ if(tx < 0 || tx >= L.N || tx >= L.N - 3) return true; if(ty >= GY) return true; return !!L.tiles[ty * 1000 + tx]; }
+function popFx(x, y, txt, c){ fx.push({ x: x, y: y, t: 0, txt: txt, c: c || "#F7C948" }); }
+function hitBlock(tx, ty){
+  var b = L.tiles[ty * 1000 + tx]; if(!b || b.kind !== "q" || b.used) return; b.used = true; b.bump = 0.001; L.save.got[b.id] = true; sfx("stamp");
+  fx.push({ item: b.item, x: tx * TS + 8, y: ty * TS, t: 0, spawn: true }); persist();
+}
+function giveItem(k, x, y){
+  if(k === "coin"){ S.coins += 1; sfx("collect"); popFx(x, y, "+1", "#F7C948"); }
+  else if(k === "food"){ S.food += 5; sfx("collect"); popFx(x, y, "+5 Food", "#E8862E"); }
+  else if(k === "mimosa"){ S.mimosa += 1; sfx("milestone"); popFx(x, y, "Mimosa!", "#FF3EA5"); toast("Mimosa: +1 hint in your next boss puzzle"); }
+  else if(k === "psilocybe"){ var h = Math.round(hpMax() * 0.25); S.hp = Math.min(hpMax(), S.hp + h); S.psilocybe += 1; sfx("milestone"); popFx(x, y, "+" + h + " health", "#9B7BD4"); toast("Psilocybe: the army recovers " + h + " health"); }
+  persist(); renderHud();
+}
+function moveX(dx){
+  P.x += dx; var l = Math.floor(P.x / TS), r = Math.floor((P.x + P.w - 0.01) / TS), t = Math.floor(P.y / TS), b = Math.floor((P.y + P.h - 0.01) / TS);
+  for(var ty = t; ty <= b; ty++){ if(dx > 0 && solid(r, ty)){ P.x = r * TS - P.w; P.vx = 0; break; } if(dx < 0 && solid(l, ty)){ P.x = (l + 1) * TS; P.vx = 0; break; } }
+}
+function moveY(dy){
+  P.y += dy; P.on = false; var l = Math.floor(P.x / TS), r = Math.floor((P.x + P.w - 0.01) / TS), t = Math.floor(P.y / TS), b = Math.floor((P.y + P.h - 0.01) / TS);
+  if(dy > 0){ for(var tx = l; tx <= r; tx++){ if(solid(tx, b)){ P.y = b * TS - P.h; P.vy = 0; P.on = true; break; } } }
+  else if(dy < 0){ for(var tx2 = l; tx2 <= r; tx2++){ if(solid(tx2, t)){ P.y = (t + 1) * TS; P.vy = 0; var mid = Math.floor((P.x + P.w / 2) / TS); hitBlock(solid(mid, t) ? mid : tx2, t); break; } } }
+}
+function blocked(){ return !L || lvPaused || resting || document.querySelector("dialog[open]") || $("overlay").classList.contains("show") || $("fightov").classList.contains("show"); }
+function lvUpdate(dt, t){
+  if(blocked()){ syncAct(); return; }
+  var d = (inp.r ? 1 : 0) - (inp.l ? 1 : 0), target = d * RUN; if(d) P.face = d;
+  P.vx += Math.max(-900 * dt, Math.min(900 * dt, target - P.vx)); if(!d && Math.abs(P.vx) < 6) P.vx = 0;
+  if(inp.j && !jumpHeld && P.on){ P.vy = -JUMPV; P.on = false; sfx("pindrop"); } jumpHeld = inp.j; if(!inp.j && P.vy < -110) P.vy *= 0.55;
+  P.vy = Math.min(420, P.vy + GRAV * dt); moveX(P.vx * dt); moveY(P.vy * dt); if(P.y > GY * TS + 40){ P.y = GY * TS - P.h; P.vy = 0; }
+  if(P.inv > 0) P.inv -= dt; if(bossCool > 0) bossCool -= dt;
+  hist.push({ x: P.x, y: P.y }); if(hist.length > 40) hist.shift();
+  L.qs.forEach(function(q){ if(q.bump > 0){ q.bump += dt; if(q.bump > 0.25) q.bump = 0; } });
+  L.coins.forEach(function(c){ if(!c.got && Math.abs(P.x + P.w / 2 - c.x - 4) < 9 && Math.abs(P.y + P.h / 2 - c.y - 4) < 12){ c.got = true; L.save.got[c.id] = true; S.coins++; sfx("collect"); popFx(c.x, c.y - 6, "+1"); persist(); renderHud(); } });
+  fx.forEach(function(f){ f.t += dt; if(f.spawn && f.t >= 0.45 && !f.done){ f.done = true; giveItem(f.item, f.x, f.y - 20); } });
+  fx = fx.filter(function(f){ return f.t < (f.spawn ? 0.5 : 0.9); });
+  for(var i = 0; i < L.enemies.length; i++){
+    var e = L.enemies[i]; if(!e.alive) continue;
+    if(e.type !== "boss"){ e.x += e.dir * e.sp * dt; if(e.x < e.min){ e.x = e.min; e.dir = 1; } if(e.x > e.max){ e.x = e.max; e.dir = -1; } var ahead = Math.floor((e.x + (e.dir > 0 ? e.w : 0)) / TS); if(solid(ahead, GY - 1)){ e.dir *= -1; e.x += e.dir * 2; } }
+    if(e.type === "boss"){ if(P.x + P.w > e.x - 34 && bossCool <= 0){ bossPrompt(e); return; } continue; }
+    if(P.inv > 0) continue;
+    if(P.x + P.w > e.x + 1 && P.x < e.x + e.w - 1 && P.y + P.h > e.y + 1 && P.y < e.y + e.h){
+      if(e.type === "creature" && P.vy > 40 && (P.y + P.h) - e.y < 10){ e.alive = false; L.save.got[e.id] = true; P.vy = -210; sfx("hit"); var lt = ENEMY_LOOT.creature; addLoot(lt); popFx(e.x, e.y - 6, "+" + lt.coins, "#F7C948"); persist(); renderHud(); }
+      else { startFight(e); return; }
+    }
+  }
+  var nearTent = Math.abs(P.x - (L.tent + 16)) < 26; if(nearTent && !S.restUsed && !L.save.tentSeen){ L.save.tentSeen = true; }
+  if(nearTent && L.save.cp !== L.tent + 8){ L.save.cp = L.tent + 8; persist(); popFx(P.x, P.y - 10, "Checkpoint", "#7DEBB0"); sfx("correct"); }
   syncAct();
 }
 function syncAct(){
-  var pn = J.pending(S), want = "", p = curP();
-  if(pn && p >= S.node - 0.14 && !run){ want = pn.boss ? "boss" : "fight"; }
-  if(want === lastAct && want !== "fight") return; var b = $("rdAct");
-  if(!want){ b.hidden = true; lastAct = ""; return; }
-  var label = want === "boss" ? "Face the " + J.BOSSES[pn.boss].name : (function(){ var o = J.odds(S, pn); return "Charge! · " + o.verdict + " · about -" + o.damage + " health"; })();
-  if(b.textContent !== label) b.textContent = label; b.hidden = false; b.setAttribute("data-act", want); if(lastAct !== want){ lastAct = want; sfx("bossin"); renderHere(); }
+  var b = $("lvAct"), near = L && !blocked() && Math.abs(P.x - (L.tent + 16)) < 30, want = near ? (S.restUsed ? "" : "rest") : "";
+  if(want === "rest"){ var hurt = S.hp < hpMax(); b.hidden = false; b.disabled = !hurt; b.textContent = hurt ? "Rest in the tent (once a day)" : "The army is healthy"; b.setAttribute("data-act", "rest"); }
+  else if(near && S.restUsed){ b.hidden = false; b.disabled = true; b.textContent = "Tent already used today"; }
+  else b.hidden = true;
 }
-function arrive(){
-  var r = J.march(S); if(!r.ok) return; persist(); var n = r.node; sfx("pindrop"); renderHud();
-  if(n.give){ sfx("collect"); toast("Found " + n.name + ": " + lootText(n.give)); }
-  else if(n.type === "town"){ sfx("correct"); toast("Checkpoint: " + n.name); }
-  else if(n.enemy){ sfx("whoosh"); toast("A " + n.name.toLowerCase() + " blocks the road!"); }
-  else if(n.boss){ sfx("bossin"); toast("Big boss ahead: " + n.name); }
-  else if(n.type === "end") { sfx("milestone"); toast("Region 1 complete!"); }
-  renderHere(); renderHud();
+$("lvAct").addEventListener("click", function(){ if(this.getAttribute("data-act") === "rest") startRest(); });
+function startRest(){ if(S.restUsed || S.hp >= hpMax()) return; resting = { t: 0, from: S.hp }; S.restUsed = true; persist(); sfx("pageflip"); $("lvAct").hidden = true; }
+/* fights */
+function startFight(e){
+  lvPaused = true; var o = odds(e.power, e.type), res = { won: o.win, damage: o.damage }; S.hp = Math.max(0, S.hp - o.damage); if(res.won) S.hp = Math.max(1, S.hp); renderHud(); persist();
+  playFight(e, res, o, function(){
+    lvPaused = false; var loot = ENEMY_LOOT[e.type];
+    if(res.won){ e.alive = false; L.save.got[e.id] = true; addLoot(loot); popFx(e.x, e.y - 8, lootText(loot).replace(/ Coins| Food/g, ""), "#F7C948"); }
+    else { P.inv = 1.8; P.vx = (P.x < e.x ? -1 : 1) * 160; P.vy = -170; P.on = false; }
+    persist(); renderHud(); if(S.hp <= 0) exhausted();
+  });
 }
-function renderHere(){
-  var n = J.nodeAt(S.node), p = J.pending(S), html = "", max = J.maxHp(S), reg = REGION[n.country];
-  $("prog").textContent = "stage " + STAGE[S.node] + " · node " + S.node + " / " + (J.ROAD.length - 1);
-  html += '<div class="ctry">' + reg.n + ' · ' + reg.lv + ' · stage ' + STAGE[S.node] + '</div><h2>' + esc(n.name) + '</h2>';
-  if(p && p.enemy){
-    var o = J.odds(S, p);
-    html += '<p class="note">' + (p.type === "army" ? "An enemy army blocks the road." : p.type === "mini" ? "A mini-boss guards the way." : "A creature blocks the road.") + ' No puzzle here: the army fights on its own.</p>' +
-      '<div class="odds"><span>Your attack <b>' + o.attack + '</b></span><span>vs <b>' + o.enemy + '</b></span><span class="verdict ' + o.verdict.replace(" ", "") + '">' + o.verdict + '</span><span>about <b>-' + o.damage + '</b> health</span></div>' +
-      '<p class="note">Loot: ' + lootText(p.loot) + '. ' + (o.win ? "" : "A loss sends the army back to the last town. ") + 'Weak to: ' + J.HEROES[p.enemy.weak].name + ' (+4 attack per level). Not ready? Walk back and train, forge or rest first.</p>';
-  } else if(p && p.boss){
-    var b = J.BOSSES[p.boss], tried = !J.bossCanTry(S);
-    html += '<p class="note"><b>Big boss · ' + b.tier + '.</b> ' + b.fact + '</p><p class="note">Challenge: <b>' + J.PUZZLES[b.puzzle].name + '</b> (' + b.difficulty + '). Win: ' + lootText(b.reward) + ' and the <b>' + b.trophy + '</b> trophy (+5 max health).</p>' + (tried ? '<p class="note"><b>The boss already won today.</b> Come back tomorrow.</p>' : "");
-  } else {
-    html += '<p class="note">' + (n.text || (n.give ? "Collected: " + lootText(n.give) + "." : "Cleared.")) + '</p>';
-    if(n.type === "end") html += '<p class="note"><b>Region 1 complete.</b> Region 2 is on its way.</p>';
-    else html += '<p class="note">Walk to the next stage. Each new stage on the road costs <b>1 energy</b> (you have ' + S.march + '). Puzzles and new days refill it. Walking back is free.</p>';
-  }
-  if(S.hp < max * 0.5 && !S.rest) html += '<p class="note" style="color:#9C4A25"><b>The army is hurt.</b> ' + (S.buildings.hospital ? "Rest it in the Army tab before the next fight." : "Build a Hospital in the City to heal it.") + '</p>';
-  $("here").innerHTML = html;
+function exhausted(){
+  lvPaused = true; popup({ title: "The army is exhausted", html: "<p>The heroes fall back to the last checkpoint and catch their breath. They keep a little health. Find the tent to heal fully.</p>", buttons: [{ label: "Continue", primary: true }],
+    onClose: function(){ S.hp = Math.ceil(hpMax() * 0.1); P.x = L.save.cp || 2 * TS; P.y = GY * TS - P.h; P.vx = P.vy = 0; P.inv = 1.5; camInit = false; lvPaused = false; persist(); renderHud(); } });
 }
-$("rdAct").addEventListener("click", function(){ var a = this.getAttribute("data-act"); if(a === "fight") doFight(); else if(a === "boss") openBoss(); });
-(function(){
-  var cv = $("roadCv");
-  cv.addEventListener("pointerdown", function(e){ var r = cv.getBoundingClientRect(); joy = { id: e.pointerId, x0: e.clientX - r.left, y0: e.clientY - r.top, dx: 0, dy: 0, m: 0 }; try{ cv.setPointerCapture(e.pointerId); }catch(x){} e.preventDefault(); });
-  cv.addEventListener("pointermove", function(e){ if(!joy || e.pointerId !== joy.id) return; var r = cv.getBoundingClientRect(), vx = e.clientX - r.left - joy.x0, vy = e.clientY - r.top - joy.y0, m = Math.sqrt(vx * vx + vy * vy); if(m > 6){ joy.dx = vx / m; joy.dy = vy / m; joy.m = Math.min(1, m / 40); } else { joy.dx = joy.dy = 0; joy.m = 0; } if(m > 46){ joy.x0 += vx / m * (m - 46); joy.y0 += vy / m * (m - 46); } });
-  function end(e){ if(joy && e.pointerId === joy.id) joy = null; } cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
-  window.addEventListener("keydown", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "a", "s", "d"].indexOf(k) >= 0){ keys[k] = true; if(settings.tab === "road" && k.indexOf("Arrow") === 0) e.preventDefault(); } });
-  window.addEventListener("keyup", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; keys[k] = false; });
-  window.addEventListener("blur", function(){ keys = {}; });
-})();
-function doFight(){
-  var n = J.pending(S), before = S.node; if(!n) return; var o = J.odds(S, n), res = J.fight(S); persist(); renderHud(); $("rdAct").hidden = true; lastAct = "";
-  playFight(n, res, function(){ if(!res.won && res.retreatTo !== undefined){ toast("Retreated to " + J.nodeAt(S.node).name); placeAt(S.node); } renderAll(); }, o);
+/* boss gate */
+function bossPrompt(e){
+  var def = L.def, bs = def.boss, morale = Math.round(30 * S.hp / hpMax()), sec = BOSS_SECONDS[bs.puzzle], hints = 1 + (S.mimosa > 0 ? 1 : 0);
+  lvPaused = true; sfx("bossin");
+  popup({ title: "Boss: " + bs.name, html: "<p class='note'>" + esc(def.name) + " · " + esc(def.country) + "</p><p>" + esc(bs.fact) + "</p><ul><li>Challenge: <b>" + PNAME[bs.puzzle] + "</b> (" + bs.difficulty + ")</li>" + (sec ? "<li>Time: <b>" + fmtTime(sec + morale) + "</b> (includes +" + morale + " s from army morale)</li>" : "<li>Time: the maze clock plus <b>" + (morale + 15) + " s</b> from heroes and army morale</li>") + "<li>Extra hints: <b>" + hints + "</b>" + (S.mimosa > 0 ? " (Mimosa used)" : "") + "</li><li>Win: clear the level and earn " + lootText(bs.reward) + "</li><li>Lose: the army takes about 20% damage and you can try again</li></ul>",
+    buttons: [{ label: "Not yet" }, { label: "Fight!", primary: true, fn: function(){ var used = S.mimosa > 0; if(used){ S.mimosa--; persist(); renderHud(); } openPuzzle({ puzzle: bs.puzzle, difficulty: bs.difficulty, boss: { def: def, index: bs.index, seconds: sec ? sec + morale : 0, bonusHints: hints, zameBonusSeconds: morale + 15 } }); } }],
+    onClose: function(){ if(!$("overlay").classList.contains("show")){ P.x = e.x - 80; P.vx = 0; bossCool = 1.2; lvPaused = false; } } });
 }
-/* stage map */
-var mapPts = null;
-function drawMap(){
-  var cv = $("mapCv"), cssW = Math.min(420, window.innerWidth * 0.88), cssH = Math.min(560, window.innerHeight * 0.72), dpr = Math.min(3, window.devicePixelRatio || 1);
-  cv.style.width = cssW + "px"; cv.style.height = cssH + "px"; cv.width = cssW * dpr; cv.height = cssH * dpr; var c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.imageSmoothingEnabled = false;
-  var pad = 36; mapPts = J.ROAD.map(function(n, k){ var row = Math.floor(k / 6), col = k % 6; if(row % 2) col = 5 - col; return { x: pad + col * ((cssW - pad * 2) / 5), y: pad + 18 + row * ((cssH - pad * 2 - 30) / 3.5) + Math.sin(k * 1.3) * 10 }; });
-  c.fillStyle = "#D9B77A"; c.fillRect(0, 0, cssW, cssH); c.fillStyle = "rgba(255,255,255,.12)"; for(var i = 0; i < 60; i++) c.fillRect((i * 97) % cssW, (i * 53) % cssH, 14, 4);
-  var cols = { jungle: "rgba(63,165,95,.45)", swamp: "rgba(58,150,140,.45)", volcano: "rgba(228,87,46,.4)" };
-  mapPts.forEach(function(p, idx){ c.fillStyle = cols[REGION[J.ROAD[idx].country].b]; c.beginPath(); c.arc(p.x, p.y, 34, 0, 7); c.fill(); });
-  c.strokeStyle = "#8D6E3C"; c.lineWidth = 9; c.lineCap = "round"; c.lineJoin = "round"; c.beginPath(); mapPts.forEach(function(p, i){ i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y); }); c.stroke();
-  c.strokeStyle = "#F2D79B"; c.lineWidth = 5; c.stroke();
-  var done = {}; c.font = "17px VT323, monospace"; c.textAlign = "center";
-  J.ROAD.forEach(function(n, idx){ var p = mapPts[idx], cl = S.cleared[n.id], reach = idx <= S.node, col = n.boss ? "#8E3FA8" : n.enemy ? "#C0392B" : n.type === "town" ? "#3A7BD5" : n.type === "end" ? "#2E9B57" : n.give ? "#F7C948" : "#2E9B57";
-    c.fillStyle = "#14261B"; c.beginPath(); c.arc(p.x, p.y, n.boss ? 13 : 10, 0, 7); c.fill(); c.fillStyle = (n.enemy || n.boss) && cl ? "#3A7BD5" : col; c.beginPath(); c.arc(p.x, p.y, n.boss ? 11 : 8, 0, 7); c.fill();
-    c.fillStyle = "#fff"; c.fillText(n.boss ? "B" : n.enemy ? ((cl) ? "✓" : "!") : n.type === "town" ? "T" : n.give ? "?" : n.type === "end" ? "⚑" : "⌂", p.x, p.y + 4);
-    c.fillStyle = "#14261B"; c.fillText(STAGE[idx], p.x, p.y - 15); if(!reach){ c.fillStyle = "rgba(20,38,27,.35)"; c.beginPath(); c.arc(p.x, p.y, 10, 0, 7); c.fill(); }
-    var rg = REGION[n.country]; if(!done[n.country]){ done[n.country] = 1; c.fillStyle = "#4A2F12"; c.font = "19px VT323, monospace"; c.fillText(rg.n + " · " + rg.lv, Math.max(115, Math.min(cssW - 115, p.x)), p.y + 33); c.font = "17px VT323, monospace"; } });
-  var me = mapPts[Math.min(S.node, mapPts.length - 1)]; c.fillStyle = "#14261B"; c.beginPath(); c.arc(me.x, me.y - 28 + Math.round(Math.sin(performance.now() / 200) * 2), 6, 0, 7); c.fill(); c.fillStyle = "#F7C948"; c.beginPath(); c.arc(me.x, me.y - 28 + Math.round(Math.sin(performance.now() / 200) * 2), 4, 0, 7); c.fill();
+function bossResult(won, timeout, def){
+  lvPaused = false; bossCool = 1.5;
+  if(won){ addLoot(def.boss.reward); S.done[def.id] = true; S.attack += 10; S.lv[def.id] = undefined; delete S.lv[def.id]; persist(); renderHud(); return { won: true }; }
+  var dmg = Math.round(hpMax() * 0.2); S.hp = Math.max(1, S.hp - dmg); persist(); renderHud(); hurtFx(); return { won: false, damage: dmg };
 }
-$("rd-map").onclick = function(){ $("dlg-map").showModal(); drawMap(); sfx("pageflip"); };
-$("map-close").onclick = function(){ $("dlg-map").close(); };
-$("mapCv").addEventListener("click", function(e){ if(!mapPts) return; var r = this.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = -1, bd = 24; mapPts.forEach(function(p, i){ var d = Math.hypot(p.x - x, p.y - y); if(d < bd){ bd = d; best = i; } });
-  if(best >= 0){ if(best <= S.node){ $("dlg-map").close(); placeAt(best); sfx("whoosh"); toast("Travelled to " + J.nodeAt(best).name); } else { toast("Not reached yet. Walk there first."); sfx("notquite"); } } });
-
+/* ================= level drawing ================= */
+function qGlyph(x, y){ R("#14261B", x + 5, y + 3, 6, 2); R("#14261B", x + 9, y + 5, 2, 3); R("#14261B", x + 7, y + 8, 3, 2); R("#14261B", x + 7, y + 11, 2, 2); }
+function drawBlock(b, cx, pal){
+  var x = b.x * TS - cx, y = b.y * TS - (b.bump ? Math.round(Math.sin(Math.min(1, b.bump / 0.25) * Math.PI) * 4) : 0);
+  if(b.kind === "brick"){ R("#14261B", x, y, 16, 16); R("#C8693D", x + 1, y + 1, 14, 14); R("#8D4A13", x + 1, y + 7, 14, 1); R("#8D4A13", x + 7, y + 1, 1, 6); R("#8D4A13", x + 3, y + 8, 1, 7); R("#8D4A13", x + 11, y + 8, 1, 7); R("#E39A6C", x + 1, y + 1, 14, 1); }
+  else if(b.used){ R("#14261B", x, y, 16, 16); R("#9A7A5E", x + 1, y + 1, 14, 14); R("#7A5C44", x + 1, y + 12, 14, 3); R("#14261B", x + 2, y + 2, 1, 1); R("#14261B", x + 13, y + 2, 1, 1); }
+  else { R("#14261B", x, y, 16, 16); R("#F7C948", x + 1, y + 1, 14, 14); R("#E9B93A", x + 1, y + 12, 14, 3); R("#FFF0A8", x + 1, y + 1, 14, 1); qGlyph(x, y); }
+}
+function drawItem(f, cx){
+  var x = f.x - cx, p = Math.min(1, f.t / 0.45), y = f.y - 16 * p;
+  if(f.item === "coin") { R("#14261B", x - 3, y - 7, 6, 8); R("#F7C948", x - 2, y - 6, 4, 6); }
+  else if(f.item === "mimosa") pickup("flower", Math.round(x), Math.round(y + 4), 0);
+  else if(f.item === "psilocybe") pickup("shroom", Math.round(x), Math.round(y + 4), 0);
+  else { R("#14261B", x - 5, y - 8, 10, 9); R("#E8862E", x - 4, y - 7, 8, 7); }
+}
+function drawPipe(p, cx){ var x = p.x * TS - cx, top = (GY - p.h) * TS; R("#14261B", x, top + 8, 32, p.h * TS - 8); R("#2E9B57", x + 2, top + 8, 28, p.h * TS - 8); R("#7BD68A", x + 4, top + 8, 5, p.h * TS - 8); R("#14261B", x - 2, top, 36, 9); R("#3FB57A", x - 1, top + 1, 34, 7); R("#9CE8A8", x + 1, top + 1, 6, 6); }
+function drawTent(x, base, used){ for(var r = 0; r < 24; r++){ var w = Math.round(4 + r * 1.2); R("#14261B", x + 16 - w / 2 - 1, base - 24 + r, w + 2, 1); R(used ? "#CFCFC4" : "#F3F7EA", x + 16 - w / 2, base - 24 + r, w, 1); } R("#14261B", x + 12, base - 12, 8, 12); R("#C0392B", x + 14, base - 22, 4, 6); R("#C0392B", x + 12, base - 20, 8, 2); R("#7A6A58", x + 13, base - 11, 6, 11); }
+function drawCastle(x0, base, done, t){
+  R("#14261B", x0, base - 96, 112, 96); R("#9AA5A0", x0 + 2, base - 94, 108, 94); for(var i = 0; i < 8; i++){ R("#14261B", x0 + i * 16, base - 104, 12, 9); R("#B8C2BC", x0 + 2 + i * 16, base - 102, 8, 8); }
+  for(var ry = 0; ry < 6; ry++) for(var rx = 0; rx < 7; rx++) R("#8A958F", x0 + 4 + rx * 15 + (ry % 2) * 7, base - 90 + ry * 14, 9, 1);
+  R("#14261B", x0 + 42, base - 48, 28, 48); R("#14261B", x0 + 46, base - 54, 20, 8); R("#2B1E16", x0 + 44, base - 46, 24, 46);
+  R("#14261B", x0 + 14, base - 78, 10, 14); R("#F7C948", x0 + 16, base - 76, 6, 10); R("#14261B", x0 + 88, base - 78, 10, 14); R("#F7C948", x0 + 90, base - 76, 6, 10);
+  R("#F3F7EA", x0 + 55, base - 138, 2, 34); var fl = Math.round(Math.sin(t / 220) * 1); R(done ? "#2E9B57" : "#C0392B", x0 + 57, base - 138, 16 + fl, 10); R("#F7C948", x0 + 60, base - 135, 4, 4);
+}
+function drawBush(b, cx, pal){ var x = b.x - cx, y = GY * TS; if(b.k === 0){ R("#237A43", x, y - 8, 22, 8); R("#2E9B57", x + 3, y - 11, 16, 5); } else if(b.k === 1){ R("#237A43", x, y - 6, 14, 6); R("#2E9B57", x + 2, y - 9, 10, 4); } else { R("#5A3A22", x + 5, y - 10, 3, 10); R("#2E8B4E", x, y - 18, 13, 9); R("#3FA55F", x + 2, y - 20, 9, 4); } }
+function lvDraw(t, k, VW, dpr){
+  var c = $("lvCv").getContext("2d"), pal = PAL[L.def.pal], cx = Math.round(cam), basey = GY * TS; g = c;
+  c.setTransform(dpr * k, 0, 0, dpr * k, 0, 0); c.imageSmoothingEnabled = false;
+  for(var y = 0; y < VHL; y += 4) R(y < 60 ? pal.sky[0] : y < 110 ? pal.sky[1] : pal.sky[2], 0, y, VW + 2, 4);
+  if(L.def.pal === "volcano"){ for(var s = 0; s < 14; s++) R("#FFD9A0", (s * 53 + 20 - cx * 0.05 + 400) % (VW + 20), (s * 37) % 70, 1, 1); }
+  else { for(var cl = 0; cl < 9; cl++){ var px = (((cl * 131 - cx * 0.18) % 520) + 520) % 520 - 40; var cy = 16 + (cl % 4) * 14; R("#fff", px, cy, 22, 5); R("#fff", px + 4, cy - 4, 12, 5); R("#E4EEFF", px, cy + 4, 22, 1); } }
+  for(var x = 0; x < VW + 2; x += 2){ var wx = x + cx * 0.3, h1 = 34 + Math.round(16 * Math.sin(wx / 38) + 9 * Math.sin(wx / 15 + 1)); R(pal.hill1, x, basey - h1, 2, h1); }
+  for(var x2 = 0; x2 < VW + 2; x2 += 2){ var wx2 = x2 + cx * 0.55, h2 = 14 + Math.round(9 * Math.sin(wx2 / 26 + 2) + 5 * Math.sin(wx2 / 11)); R(pal.hill2, x2, basey - h2, 2, h2); }
+  L.bushes.forEach(function(b){ if(b.x - cx > -30 && b.x - cx < VW + 30) drawBush(b, cx, pal); });
+  var t0 = Math.max(0, Math.floor(cx / TS) - 1), t1 = Math.min(L.N - 1, Math.ceil((cx + VW) / TS) + 1);
+  for(var tx = t0; tx <= t1; tx++){ var gx = tx * TS - cx; R(pal.grass, gx, basey, 16, 4); R(shade(pal.grass, -35), gx, basey + 4, 16, 1); R(pal.dirt, gx, basey + 5, 16, 43); if((tx & 1) === 0){ R(pal.dirt2, gx + 3, basey + 12, 3, 2); R(pal.dirt2, gx + 10, basey + 28, 3, 2); } else { R(pal.dirt2, gx + 8, basey + 18, 3, 2); R(pal.dirt2, gx + 2, basey + 36, 3, 2); } R(pal.dirt2, gx + 15, basey + 5, 1, 43); }
+  L.pipes.forEach(function(p){ if(p.x * TS - cx > -40 && p.x * TS - cx < VW + 10) drawPipe(p, cx); });
+  for(var key in L.tiles){ var b = L.tiles[key]; if(b.kind === "pipe") continue; var bx = b.x * TS - cx; if(bx > -20 && bx < VW + 10) drawBlock(b, cx, pal); }
+  drawCastle(L.castle - cx, basey, !!S.done[L.def.id], t); drawTent(L.tent - cx, basey, S.restUsed);
+  L.coins.forEach(function(co){ if(co.got) return; var w = Math.abs(Math.round(Math.sin(t / 130 + co.x) * 3)) + 1; R("#14261B", co.x - cx + 4 - w - 1, co.y, w * 2 + 2, 10); R("#F7C948", co.x - cx + 4 - w, co.y + 1, w * 2, 8); });
+  L.enemies.forEach(function(e){
+    if(!e.alive) return; var x = Math.round(e.x - cx + e.w / 2), y = Math.round(e.y + e.h);
+    if(x < -50 || x > VW + 50) return; g.save(); g.translate(x, y); if(e.dir < 0 && e.type !== "boss" || e.type === "boss") g.scale(-1, 1);
+    if(e.type === "army"){ [[-8, 2, 0.7], [8, 0, 0.7]].forEach(function(o){ g.save(); g.translate(o[0], o[1]); g.scale(o[2], o[2]); critter(e.kind, 0, 0, t + o[0] * 40); g.restore(); }); }
+    else if(e.type === "mini") { g.save(); g.scale(0.85, 0.85); critter(e.kind, 0, 0, t); g.restore(); }
+    else if(e.type === "boss") { g.save(); g.scale(0.8, 0.8); critter(e.kind, 0, 0, t); g.restore(); }
+    else critter(e.kind, 0, 0, t); g.restore();
+    if(e.type === "army" || e.type === "mini"){ var o = odds(e.power, e.type), col = o.verdict === "easy" ? "#7BC67A" : o.verdict === "risky" ? "#F7C948" : "#E0533D", lab = o.verdict === "too strong" ? "TOO STRONG" : o.verdict.toUpperCase(); g.font = "10px VT323, monospace"; var tw = g.measureText(lab).width + 6; R("#14261B", x - tw / 2 - 1, y - 34, tw + 2, 11); R(col, x - tw / 2, y - 33, tw, 9); g.fillStyle = "#14261B"; g.fillText(lab, x - tw / 2 + 3, y - 25); }
+    if(e.type === "boss"){ R("#F7C948", x - 5, y - 36, 11, 2); R("#F7C948", x - 5, y - 39, 2, 3); R("#F7C948", x, y - 40, 2, 4); R("#F7C948", x + 4, y - 39, 2, 3); }
+  });
+  fx.forEach(function(f){ if(f.spawn){ drawItem(f, cx); } else { g.fillStyle = f.c; g.font = "11px VT323, monospace"; g.globalAlpha = Math.max(0, 1 - f.t / 0.9); g.fillText(f.txt, Math.round(f.x - cx), Math.round(f.y - f.t * 22)); g.globalAlpha = 1; } });
+  // party
+  var blink = P.inv > 0 && Math.floor(t / 80) % 2 === 0; if(!blink){
+    var HC = ["navigator", "scholar", "engineer"]; for(var i = 2; i >= 0; i--){ var hp = hist[Math.max(0, hist.length - 1 - i * 9)] || P, xx = Math.round(hp.x + P.w / 2 - cx), yy = Math.round(i === 0 ? P.y + P.h : (hist[Math.max(0, hist.length - 1 - i * 9)] || P).y + P.h);
+      var bob = P.on && Math.abs(P.vx) > 20 ? Math.round(Math.abs(Math.sin(t / 70 + i)) * 1.4) : 0; hero(xx, yy, HEROC[HC[i]][0], HEROC[HC[i]][1], bob); } }
+  if(resting){ var pp = resting.t / 4; R("#14261B", L.tent - cx - 6, basey - 38, 44, 8); R("#7DEBB0", L.tent - cx - 5, basey - 37, Math.round(42 * pp), 6); g.fillStyle = "#14261B"; g.font = "11px VT323, monospace"; g.fillText("Resting...", L.tent - cx + 2, basey - 42); }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function lvFrame(t){
+  var cv = $("lvCv"); if(!cv.offsetParent || !L) return;
+  var dpr = Math.min(3, window.devicePixelRatio || 1), cssW = cv.parentNode.clientWidth || 320, cssH = Math.round(Math.max(300, Math.min(480, window.innerHeight * 0.56))), k = cssH / VHL, VW = cssW / k;
+  if(cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)){ cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + "px"; }
+  var dt = Math.min(0.04, (t - (lvFrame.last || t)) / 1000); lvFrame.last = t;
+  if(resting){ resting.t += dt; S.hp = resting.from + (hpMax() - resting.from) * Math.min(1, resting.t / 4); if(resting.t >= 4){ S.hp = hpMax(); resting = null; persist(); sfx("correct"); toast("The army is fully rested!"); } renderHud(); }
+  lvUpdate(dt, t);
+  var want = Math.max(0, Math.min(L.N * TS - VW, P.x - VW * 0.38)); if(!camInit){ cam = want; camInit = true; } cam += (want - cam) * 0.14;
+  lvDraw(t, k, VW, dpr);
+}
 /* ================= skirmish ================= */
-function playFight(n, res, done, odds){
-  var ov = $("fightov"), cv = $("fightCv"), c = cv.getContext("2d"), t0 = performance.now(), ended = false, boss = !!n.boss;
-  $("f-title").textContent = n.name; $("f-res").innerHTML = '<p class="note">The army moves in…</p>'; $("f-ok").style.display = "none"; ov.classList.add("show"); sfx("whoosh");
+function playFight(e, res, o, done){
+  var ov = $("fightov"), cv = $("fightCv"), c = cv.getContext("2d"), t0 = performance.now(), ended = false, swarm = e.type === "creature" || e.type === "army";
+  $("f-title").textContent = KIND_NAME[e.kind] || "Enemy"; $("f-res").innerHTML = '<p class="note">The army moves in…</p>'; $("f-ok").style.display = "none"; ov.classList.add("show"); sfx("whoosh");
   c.imageSmoothingEnabled = false; var hit1 = false, hit2 = false;
   function frame(now){
     var t = (now - t0) / 1000; g = c; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 150, 60);
-    for(var y = 0; y < 36; y += 4) R(y < 14 ? "#5BA8F5" : "#8EC5FC", 0, y, 150, 4); R("#6CC36C", 0, 36, 150, 24); R("#3F9A4B", 0, 36, 150, 1);
+    for(var y = 0; y < 36; y += 4) R(y < 14 ? "#5BA8F5" : "#8EC5FC", 0, y, 150, 4); R("#6CC36C", 0, 36, 150, 24); R("#3FA55F", 0, 36, 150, 1);
     var lunge = t > 0.4 && t < 1.0 ? Math.sin((t - 0.4) / 0.6 * Math.PI) * 34 : 0, clash = t > 0.62 && t < 0.9, shake = clash ? (Math.round(t * 40) % 2 ? 2 : -2) : 0;
     if(t > 0.6 && !hit1){ hit1 = true; sfx("hit"); } if(t > 0.8 && !hit2){ hit2 = true; sfx(res.won ? "hit" : "miss"); }
     c.save(); c.translate(28 + lunge, 54); party(0, 0, now); c.restore();
-    var gone = res.won && t > 1.0; if(!gone || Math.floor(t * 12) % 2 === 0){ c.save(); c.translate(116 + shake, 54); c.scale(-1, 1); var sw = !boss && n.type !== "mini"; if(sw){ [[-14, 2], [8, -2], [26, 3]].forEach(function(o){ c.save(); c.translate(o[0], o[1]); c.scale(1.1, 1.1); critter(ART[n.id], 0, 0, now + o[0] * 30); c.restore(); }); } else { c.save(); c.scale(boss ? 1.4 : 1.5, boss ? 1.4 : 1.5); critter(ART[n.id], 0, 0, now); c.restore(); } c.restore(); }
-    if(odds){ [0.27, 0.18, 0.33, 0.22].forEach(function(f, i){ var s0 = 0.66 + i * 0.13; if(t > s0 && t < s0 + 0.5){ g.fillStyle = "#F7C948"; g.font = "9px VT323, monospace"; g.fillText("-" + Math.round(odds.attack * f), 96 + (i % 2) * 14 - (i > 1 ? 10 : 0), 28 - (t - s0) * 24 - (i % 2) * 5); } }); }
+    var gone = res.won && t > 1.0; if(!gone || Math.floor(t * 12) % 2 === 0){ c.save(); c.translate(116 + shake, 54); c.scale(-1, 1); if(swarm){ [[-14, 2], [8, -2], [26, 3]].forEach(function(p){ c.save(); c.translate(p[0], p[1]); c.scale(1.1, 1.1); critter(e.kind, 0, 0, now + p[0] * 30); c.restore(); }); } else { c.save(); c.scale(1.5, 1.5); critter(e.kind, 0, 0, now); c.restore(); } c.restore(); }
+    [0.27, 0.18, 0.33, 0.22].forEach(function(f, i){ var s0 = 0.66 + i * 0.13; if(t > s0 && t < s0 + 0.5){ g.fillStyle = "#F7C948"; g.font = "9px VT323, monospace"; g.fillText("-" + Math.round(o.attack * f), 96 + (i % 2) * 14 - (i > 1 ? 10 : 0), 28 - (t - s0) * 24 - (i % 2) * 5); } });
     if(clash){ R("#fff", 62 + (Math.round(t * 30) % 4), 30, 3, 3); R("#F7C948", 70, 26 + (Math.round(t * 20) % 3), 3, 3); }
-    if(t > 1.0){ g.fillStyle = "#14261B"; g.font = "9px VT323, monospace"; g.fillText("-" + res.damage, 28, 24 - Math.min(10, (t - 1.0) * 14)); }
-    if(t > 1.5 && !ended){ ended = true; finishFight(); }
+    if(t > 1.0){ g.fillStyle = "#C0392B"; g.font = "10px VT323, monospace"; g.fillText("-" + res.damage, 28, 24 - Math.min(10, (t - 1.0) * 14)); }
+    if(t > 1.5 && !ended){ ended = true; finish(); }
     if(!ended || t < 1.6) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  function finishFight(){
-    hurt(); var html;
-    if(res.won){ sfx("correct"); html = '<h3>Victory!</h3><p class="note">The army took <b>-' + res.damage + '</b> health. Loot: ' + lootText(res.loot) + '.</p>'; }
-    else { sfx("notquite"); html = '<h3>Defeat…</h3><p class="note">The enemy was too strong: <b>-' + res.damage + '</b> health. The army retreats to ' + esc(J.nodeAt(res.retreatTo).name) + ' and keeps 10% health. Nothing is lost: rest and try again.</p>'; }
+  function finish(){
+    hurtFx(); var html, loot = ENEMY_LOOT[e.type];
+    if(res.won){ sfx("correct"); html = '<h3>Victory!</h3><p class="note">The army took <b>-' + res.damage + '</b> health. Loot: ' + lootText(loot) + '.</p>'; }
+    else { sfx("notquite"); html = '<h3>Defeat…</h3><p class="note">The enemy was too strong: <b>-' + res.damage + '</b> health. The army is pushed back. Nothing is lost: heal at the tent and try again, or jump over it.</p>'; }
     $("f-res").innerHTML = html; $("f-ok").style.display = ""; $("f-ok").onclick = function(){ ov.classList.remove("show"); sfx("tap"); done(); };
   }
 }
-
 /* ================= puzzles (embedded games) ================= */
 var run = null;
-function openBoss(){
-  var cfg = J.bossConfig(S), b = J.BOSSES[cfg.boss], P = J.PUZZLES[cfg.puzzle];
-  if(!cfg.unlocked){ var bid = J.puzzleBuilding(cfg.puzzle); popup({ title: b.name + " guards the road", html: "<p>This boss fights with <b>" + P.name + "</b>. Unlock it first: upgrade the <b>" + J.BUILDINGS[bid].name + "</b> to level " + J.PUZZLE_UNLOCK_LEVEL + " in the City.</p>", buttons: [{ label: "To the City", primary: true, fn: function(){ tab("city"); } }, { label: "Close" }] }); return; }
-  sfx("bossin");
-  popup({ title: "Boss: " + b.name, html: '<p class="note">' + b.home + ' · ' + b.tier + '</p><p>' + b.fact + '</p><ul><li>Puzzle: <b>' + P.name + '</b> (' + cfg.difficulty + ')</li>' + (cfg.seconds ? '<li>Time: <b>' + fmtTime(cfg.seconds) + '</b> (' + cfg.heroSeconds + ' s from heroes, ' + cfg.moraleSeconds + ' s from army health)</li>' : '<li>Time: the maze clock plus <b>' + cfg.zameBonusSeconds + ' s</b> from heroes and army health</li>') + '<li>Hints: <b>' + (J.PUZZLES[cfg.puzzle] ? (S.heroes ? J.heroBonus(S, cfg.puzzle).hints : 0) : 0) + ' extra</b> from your heroes</li><li>Win: ' + lootText(b.reward) + ' + the ' + b.trophy + ' trophy</li><li>Lose: the army loses about ' + Math.round(b.loseDamage * 100) + '% health, and the boss waits until tomorrow</li></ul>',
-    buttons: [{ label: "Not yet" }, { label: "Fight!", primary: true, fn: function(){ openPuzzle({ puzzle: cfg.puzzle, difficulty: cfg.difficulty, boss: cfg }); } }] });
-}
 function openPuzzle(o){
-  var P = J.PUZZLES[o.puzzle], html;
-  try{ html = JSON.parse($("puz-" + o.puzzle).textContent); }catch(e){ toast("Puzzle file missing"); return; }
-  var hb = J.heroBonus(S, o.puzzle); run = { puzzle: o.puzzle, difficulty: o.difficulty, boss: o.boss || null, done: false, left: o.boss ? o.boss.seconds : 0, timer: null };
-  $("ov-title").textContent = (o.boss ? "Boss: " + J.BOSSES[o.boss.boss].name + " · " : "") + P.name; $("ov-clock").textContent = ""; $("ov-res").classList.remove("show");
+  var html; try{ html = JSON.parse($("puz-" + o.puzzle).textContent); }catch(e){ toast("Puzzle file missing"); return; }
+  run = { puzzle: o.puzzle, boss: o.boss, done: false, left: o.boss.seconds, timer: null };
+  $("ov-title").textContent = "Boss: " + o.boss.def.boss.name + " · " + PNAME[o.puzzle]; $("ov-clock").textContent = ""; $("ov-res").classList.remove("show");
   var old = $("ov-body").querySelector("iframe"); if(old) old.remove();
-  var f = document.createElement("iframe"); f.setAttribute("title", P.name); f.srcdoc = html;
+  var f = document.createElement("iframe"); f.setAttribute("title", PNAME[o.puzzle]); f.srcdoc = html;
   f.onload = function(){
-    try{
-      var w = f.contentWindow, gm = w[GAME[o.puzzle]]; if(!gm || !gm.start) throw new Error("no hooks");
-      if(gm.config){ gm.config.bonusHints = o.boss ? o.boss.bonusHints : hb.hints; gm.config.bonusSeconds = o.boss ? o.boss.zameBonusSeconds : hb.seconds; }
-      gm.onFinish = function(info){ finishRun(!!(info && info.won), info && info.difficulty); };
-      gm.start({ difficulty: o.difficulty, index: o.boss ? o.boss.index : undefined, locked: true });
+    try{ var w = f.contentWindow, gm = w[GAME[o.puzzle]]; if(!gm || !gm.start) throw new Error("no hooks");
+      if(gm.config){ gm.config.bonusHints = o.boss.bonusHints; gm.config.bonusSeconds = o.boss.zameBonusSeconds; }
+      gm.onFinish = function(info){ finishRun(!!(info && info.won)); }; gm.start({ difficulty: o.difficulty, index: o.boss.index, locked: true });
     }catch(e){ toast("Could not start the puzzle"); }
   };
   $("ov-body").insertBefore(f, $("ov-res")); $("overlay").classList.add("show"); sfx("whoosh");
-  if(o.boss && o.boss.seconds){ $("ov-clock").textContent = fmtTime(run.left); run.timer = setInterval(function(){ if(document.visibilityState !== "visible" || run.done) return; run.left--; $("ov-clock").textContent = fmtTime(run.left); $("ov-clock").classList.toggle("low", run.left <= 15); if(run.left <= 0){ sfx("notquite"); finishRun(false, null, true); } }, 1000); }
+  if(o.boss.seconds){ $("ov-clock").textContent = fmtTime(run.left); run.timer = setInterval(function(){ if(document.visibilityState !== "visible" || !run || run.done) return; run.left--; $("ov-clock").textContent = fmtTime(run.left); $("ov-clock").classList.toggle("low", run.left <= 15); if(run.left <= 0){ sfx("notquite"); finishRun(false, true); } }, 1000); }
 }
-function closeOverlay(){
-  if(run && run.timer) clearInterval(run.timer); run = null; $("overlay").classList.remove("show"); $("ov-res").classList.remove("show");
-  var f = $("ov-body").querySelector("iframe"); if(f) f.remove(); renderAll();
-}
-function finishRun(won, diff, timeout){
-  if(!run || run.done) return; run.done = true; if(run.timer) clearInterval(run.timer); var r = run, html, d = r.difficulty;
+function closeOverlay(){ if(run && run.timer) clearInterval(run.timer); run = null; $("overlay").classList.remove("show"); $("ov-res").classList.remove("show"); var f = $("ov-body").querySelector("iframe"); if(f) f.remove(); }
+function finishRun(won, timeout){
+  if(!run || run.done) return; run.done = true; if(run.timer) clearInterval(run.timer); var r = run, def = r.boss.def;
   setTimeout(function(){
-    if(r.boss){
-      var br = J.bossFinish(S, won); persist();
-      if(won){ sfx("bossend"); html = '<h2>' + esc(J.BOSSES[r.boss.boss].name) + ' defeated!</h2><p>Loot: <b>' + lootText(br.reward) + '</b></p><p>Trophy: <b>' + esc(br.trophy) + '</b> (+5 max health)</p>'; setTimeout(function(){ sfx("solved"); }, 700); }
-      else { sfx("notquite"); html = '<h2>' + (timeout ? "Out of time" : "The boss wins today") + '</h2><p>The army took <b>-' + br.damage + '</b> health. Nothing is lost: ' + esc(J.BOSSES[r.boss.boss].name) + ' will wait for you tomorrow.</p>'; }
-    } else {
-      var pr = J.puzzleDone(S, r.puzzle, d, won); persist();
-      if(won && pr.paid){ sfx("solved"); html = '<h2>Solved!</h2><p>The city earned <b>' + lootText(pr.reward) + '</b> and <b>+1 march point</b>.</p>'; }
-      else if(won){ sfx("correct"); html = '<h2>Solved again!</h2><p>Today\'s reward for ' + J.PUZZLES[r.puzzle].name + ' was already paid. Great practice.</p>'; }
-      else { sfx("notquite"); html = '<h2>Not this time</h2><p>No harm done. Try again whenever you like.</p>'; }
-    }
-    $("ov-card").innerHTML = html + '<div class="acts" style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn primary" id="ov-ok">' + (r.boss ? "Back to the road" : "Back to the city") + '</button></div>';
-    $("ov-ok").onclick = function(){ closeOverlay(); if(r.boss) tab("road"); };
+    var br = bossResult(won, timeout, def), html;
+    if(won){ sfx("bossend"); html = "<h2>" + esc(def.boss.name) + " defeated!</h2><p>Region <b>" + esc(def.name) + "</b> is cleared.</p><p>Loot: <b>" + lootText(def.boss.reward) + "</b></p><p>The army trained harder: <b>+10 attack</b>.</p>" + (def.id < LEVELS.length ? "<p>The next region is open.</p>" : "<p><b>Region 1 complete!</b> More regions are on their way.</p>"); setTimeout(function(){ sfx("solved"); }, 700); }
+    else { sfx("notquite"); html = "<h2>" + (timeout ? "Out of time" : "The boss holds") + "</h2><p>The army took <b>-" + br.damage + "</b> health. Nothing is lost: heal and try again.</p>"; }
+    $("ov-card").innerHTML = html + '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn primary" id="ov-ok">' + (won ? "Back to the world map" : "Back to the level") + '</button></div>';
+    $("ov-ok").onclick = function(){ closeOverlay(); if(won) leaveLevel(); else if(L){ P.x = L.enemies[L.enemies.length - 1].x - 90; P.vx = 0; camInit = false; } };
     $("ov-res").classList.add("show"); renderHud();
   }, 1300);
 }
 $("ov-close").onclick = function(){
-  if(run && !run.done && run.boss){ popup({ title: "Leave the fight?", html: "<p>If you leave now, the boss wins today and the army takes damage.</p>", buttons: [{ label: "Stay" }, { label: "Leave", danger: true, fn: function(){ finishRun(false); } }] }); return; }
+  if(run && !run.done){ popup({ title: "Leave the fight?", html: "<p>If you leave now, the boss wins today and the army takes damage.</p>", buttons: [{ label: "Stay" }, { label: "Leave", danger: true, fn: function(){ finishRun(false); } }] }); return; }
   closeOverlay();
 };
-
 /* ================= wiring ================= */
-function tab(v){
-  settings.tab = v; store(KEY_SET, settings);
-  ["city", "road", "army"].forEach(function(k){ $("v-" + k).classList.toggle("show", k === v); $("t-" + k).setAttribute("aria-pressed", String(k === v)); });
-  renderAll(); sfx("tap");
-}
-["city", "road", "army"].forEach(function(k){ $("t-" + k).onclick = function(){ tab(k); }; });
-function renderAll(){ renderHud(); renderCards(); renderHere(); if(settings.tab === "army") renderArmy(); }
+function bindPad(id, key){ var b = $(id); function on(e){ inp[key] = true; b.classList.add("on"); e.preventDefault(); } function off(){ inp[key] = false; b.classList.remove("on"); } b.addEventListener("pointerdown", on); ["pointerup", "pointercancel", "pointerleave"].forEach(function(ev){ b.addEventListener(ev, off); }); }
+bindPad("c-left", "l"); bindPad("c-right", "r"); bindPad("c-jump", "j");
+window.addEventListener("keydown", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if(!L) return; var h = true;
+  if(k === "ArrowLeft" || k === "a") inp.l = true; else if(k === "ArrowRight" || k === "d") inp.r = true; else if(k === "ArrowUp" || k === "w" || k === " " || k === "z") inp.j = true; else if((k === "Enter" || k === "e") && !$("lvAct").hidden && !$("lvAct").disabled) $("lvAct").click(); else h = false;
+  if(h && !document.querySelector("dialog[open]")) e.preventDefault(); });
+window.addEventListener("keyup", function(e){ var k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if(k === "ArrowLeft" || k === "a") inp.l = false; else if(k === "ArrowRight" || k === "d") inp.r = false; else if(k === "ArrowUp" || k === "w" || k === " " || k === "z") inp.j = false; });
+window.addEventListener("blur", function(){ inp.l = inp.r = inp.j = false; });
+$("lv-map").onclick = function(){ leaveLevel(); sfx("pageflip"); };
 $("btn-help").onclick = function(){ $("dlg-help").showModal(); };
 $("btn-tools").onclick = function(){ $("dlg-tools").showModal(); };
 $("btn-sound").onclick = function(){ settings.sfx = !settings.sfx; store(KEY_SET, settings); applySound(); if(settings.sfx) Sound.play("collect"); };
-$("tool-day").onclick = function(){ var r = J.nextDay(S); persist(); $("dlg-tools").close(); toast("Day " + S.day + ": +" + r.march + " march" + (Object.keys(r.produced).length ? ", " + lootText(r.produced) : "")); sfx("milestone"); renderAll(); };
-$("tool-res").onclick = function(){ J.RES.forEach(function(r){ S.res[r] += 100; }); persist(); renderAll(); sfx("collect"); };
-$("tool-hp").onclick = function(){ S.hp = Math.max(1, Math.round(J.maxHp(S) * 0.2)); persist(); hurt(); renderAll(); };
-$("tool-reset").onclick = function(){ S = J.normaliseState(null); persist(); placeAt(0); prevRes = null; $("dlg-tools").close(); renderAll(); };
-setInterval(function(){
-  if(J.tickRest(S, Date.now())){ persist(); toast("The army is rested and ready!"); sfx("correct"); renderAll(); } else if(S.rest){ renderHud(); if(settings.tab === "army") renderArmy(); }
-}, 500);
-function loop(t){ if(settings.tab === "city") drawCity(t); else if(settings.tab === "road") roadFrame(t); requestAnimationFrame(loop); }
-window.addEventListener("resize", function(){ renderAll(); });
+$("tool-day").onclick = function(){ S.day++; S.restUsed = false; persist(); $("dlg-tools").close(); toast("A new day: the tent is ready again."); sfx("milestone"); };
+$("tool-heal").onclick = function(){ S.hp = hpMax(); persist(); renderHud(); $("dlg-tools").close(); };
+$("tool-hp").onclick = function(){ S.hp = Math.max(1, Math.round(hpMax() * 0.2)); persist(); hurtFx(); renderHud(); $("dlg-tools").close(); };
+$("tool-unlock").onclick = function(){ LEVELS.forEach(function(l){ if(l.id < LEVELS.length) S.done[l.id] = true; }); persist(); $("dlg-tools").close(); buildWorld(); toast("All levels unlocked."); };
+$("tool-reset").onclick = function(){ S = fresh(); persist(); prevRes = null; $("dlg-tools").close(); if(L) leaveLevel(); buildWorld(); renderHud(); };
+function loop(t){ if(L) lvFrame(t); else worldFrame(t); requestAnimationFrame(loop); }
+window.addEventListener("resize", function(){ if(!L) buildWorld(); });
 document.addEventListener("pointerdown", function once(){ document.removeEventListener("pointerdown", once); try{ Sound.play("tap"); }catch(e){} }, { once: true });
-applySound(); tab(settings.tab || "city"); requestAnimationFrame(loop);
+applySound(); renderHud(); buildWorld(); requestAnimationFrame(loop);
 })();
 </script>
 </body>
