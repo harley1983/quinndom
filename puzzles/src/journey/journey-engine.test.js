@@ -24,7 +24,7 @@ console.log("puzzle rewards, days, march");
 test("a win pays once a day per puzzle in the puzzle's own resource, plus one march point; a loss pays nothing", () => {
   const s = rich(J.newState()); J.upgrade(s, "quarry"); J.upgrade(s, "quarry"); s.march = 0; const stone = s.res.stone;
   assert.strictEqual(J.puzzleDone(s, "wxrdie", "easy", true).error, "Puzzle is locked");
-  let r = J.puzzleDone(s, "mapnitude", "normal", true); assert.ok(r.paid); assert.strictEqual(r.reward.stone, 8); assert.strictEqual(Object.values(r.reward).reduce((a, b) => a + b, 0), 14); assert.strictEqual(s.march, 1); assert.strictEqual(s.res.stone, stone + 8);
+  let r = J.puzzleDone(s, "mapnitude", "normal", true); assert.ok(r.paid); assert.strictEqual(r.reward.stone, 8); assert.strictEqual(Object.keys(r.reward).filter(k => k !== "coins").reduce((a, k) => a + r.reward[k], 0), 14); assert.strictEqual(r.reward.coins, 5); assert.strictEqual(s.march, 1); assert.strictEqual(s.res.stone, stone + 8);
   r = J.puzzleDone(s, "mapnitude", "normal", true); assert.ok(!r.paid && r.repeat); assert.strictEqual(s.march, 1);
   assert.ok(!J.puzzleDone(s, "mapnitude", "hard", false).paid);
   J.nextDay(s); assert.ok(J.puzzleDone(s, "mapnitude", "easy", true).paid);
@@ -32,6 +32,11 @@ test("a win pays once a day per puzzle in the puzzle's own resource, plus one ma
 test("new day: +3 march (capped), buildings produce", () => {
   const s = rich(J.newState()); J.upgrade(s, "timber"); J.upgrade(s, "mycelium"); const w = s.res.wood, p = s.res.psilocybe; s.march = 8; const r = J.nextDay(s);
   assert.strictEqual(s.march, 9); assert.strictEqual(s.res.wood, w + 5); assert.strictEqual(s.res.psilocybe, p + 1); assert.strictEqual(s.day, 2);
+});
+test("a solved puzzle pays coins on top of resources, and coins start at zero", () => {
+  assert.strictEqual(J.newState().res.coins, 0); const s = rich(J.newState());
+  ["easy", "normal", "hard"].forEach((d) => { const r = J.puzzleReward(s, "elmundo", d); assert.strictEqual(r.coins, J.COIN_BASE[d]); });
+  assert.ok(J.puzzleReward(s, "elmundo", "hard").coins > J.puzzleReward(s, "elmundo", "easy").coins);
 });
 test("level 3 buildings pay a bigger puzzle reward", () => { const s = rich(J.newState()); for (let i = 0; i < 3; i++) J.upgrade(s, "bamboo"); assert.ok(Object.values(J.puzzleReward(s, "elmundo", "hard")).reduce((a, b) => a + b, 0) >= 25); });
 

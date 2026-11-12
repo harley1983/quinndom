@@ -61,7 +61,7 @@ main{flex:1; width:100%; max-width:520px; margin:0 auto; padding:12px 14px 16px;
 /* Board */
 .board{
   --gap:6px;
-  --tile:min(62px, calc((min(100vw, 520px) - 28px - 20px - (var(--cols) - 1) * var(--gap)) / var(--cols)));
+  --tile:min(62px, calc((min(100vw, 520px) - 28px - 20px - (var(--cols) - 1) * var(--gap)) / var(--cols)), max(42px, calc((100dvh - 490px) / 6)));
   display:grid; gap:var(--gap); padding:10px; background:rgba(233,216,166,.45); border:2px solid var(--sand); border-radius:16px;
 }
 .row{display:grid; grid-template-columns:repeat(var(--cols), var(--tile)); gap:var(--gap)}
@@ -75,6 +75,7 @@ main{flex:1; width:100%; max-width:520px; margin:0 auto; padding:12px 14px 16px;
 .tile[data-state="correct"]{background:var(--c-correct); border-color:var(--c-correct); color:#fff}
 .tile[data-state="present"]{background:var(--c-present); border-color:var(--c-present); color:var(--c-present-ink)}
 .tile[data-state="absent"]{background:var(--absent); border-color:var(--absent); color:#fff}
+.tile[data-hint]{background:#FFF7D6; border:2px dashed var(--brass); color:#8A6200}
 .tile.pop{animation:pop .12s ease-out}
 .tile.flip{animation:flip .56s ease both; animation-delay:calc(var(--i) * .28s)}
 .tile.bounce{animation:bounce .7s ease both; animation-delay:calc(var(--i) * .08s)}
@@ -113,21 +114,37 @@ main{flex:1; width:100%; max-width:520px; margin:0 auto; padding:12px 14px 16px;
 .warn.show{animation:warnin .3s ease-out}
 @keyframes warnin{from{transform:translateY(-4px); opacity:0}}
 
+/* Hints */
+.hints{display:flex; gap:10px; width:100%}
+.hintbtn{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:6px 8px; font-size:13px; line-height:1.1; white-space:normal; text-align:center}
+.hintbtn svg{width:18px; height:18px; flex:none}
+.hintbtn .k{font-family:var(--font-pixel); font-size:21px; line-height:22px; min-width:26px; padding:0 5px; text-align:center; background:var(--sun); color:var(--ink); border:2px solid var(--ink); border-radius:8px}
+@media (max-width:400px){ .hintbtn svg{display:none} }
+.hintbtn:disabled{opacity:.45; cursor:not-allowed; box-shadow:0 1px 0 var(--ink); transform:none}
+.hintbtn:disabled .k{background:#ddd8c4}
+
 /* Keyboard */
 .kb.hidden{display:none}
-.kb{width:100%; display:flex; flex-direction:column; gap:7px; margin-top:auto}
+.kb{width:calc(100% + 12px); margin:auto -6px 0; display:flex; flex-direction:column; gap:8px}
 .kb-row{display:flex; gap:5px; justify-content:center}
+.kb-gap{flex:.5 1 0}
 .key{
-  flex:1 1 0; max-width:46px; height:54px; border:0; border-radius:8px; background:var(--sand); color:var(--ink);
-  font-family:var(--font-head); font-weight:700; font-size:16px; text-transform:uppercase; cursor:pointer;
-  box-shadow:0 3px 0 rgba(20,38,27,.28); padding:0; touch-action:manipulation;
+  flex:1 1 0; min-width:0; max-width:48px; height:58px; border:0; border-radius:9px; background:var(--sand); color:var(--ink);
+  font-family:var(--font-head); font-weight:700; font-size:20px; text-transform:uppercase; cursor:pointer;
+  box-shadow:0 3px 0 rgba(20,38,27,.28); padding:0; touch-action:manipulation; user-select:none; -webkit-user-select:none;
+  display:grid; place-items:center;
 }
-.key:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(20,38,27,.28)}
-.key.wide{flex:1.6 1 0; max-width:70px; font-size:13px}
+.key:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(20,38,27,.28); filter:brightness(.94)}
+.key.wide{flex:1.7 1 0; max-width:78px; font-size:14px}
+.key svg{width:24px; height:24px}
+.key[data-key="enter"]{background:#D8CFA0; color:#5B5A3D}
+.key[data-key="enter"].ready{background:var(--canopy); color:#fff; box-shadow:0 3px 0 #14502D}
 .key[data-state="correct"]{background:var(--c-correct); color:#fff}
 .key[data-state="present"]{background:var(--c-present); color:var(--c-present-ink)}
 .key[data-state="absent"]{background:var(--absent); color:#fff; opacity:.8}
+.key.gone{opacity:.32; text-decoration:line-through; text-decoration-thickness:2px}
 
+@media (max-height:700px){ .key{height:48px} .kb{gap:6px} }
 @media (min-width:700px){ .kb{margin-top:10px} main{padding-top:18px} }
 
 /* Toast */
@@ -204,11 +221,17 @@ body.locked .controls{justify-content:flex-end}
   </section>
 
   <div class="entry" id="entry">
-    <form class="submit" id="submit-form" autocomplete="off">
-      <input id="guess-input" type="text" maxlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Type your word" placeholder="Type your word">
-      <button class="btn primary" type="submit" id="btn-submit">Submit</button>
-    </form>
     <p class="warn" id="warn" role="alert"></p>
+    <div class="hints" id="hints" role="group" aria-label="Hints">
+      <button class="btn hintbtn" id="btn-hint-out" type="button" aria-label="Hint: remove letters that are not in the word">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+        Remove letters <span class="k" id="hint-out-left">2</span>
+      </button>
+      <button class="btn hintbtn" id="btn-hint-rev" type="button" aria-label="Hint: reveal one letter in its right spot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        Reveal a letter <span class="k" id="hint-rev-left">2</span>
+      </button>
+    </div>
   </div>
 
   <div class="kb" id="kb" aria-label="Keyboard"></div>
@@ -230,6 +253,7 @@ body.locked .controls{justify-content:flex-end}
     <div class="tile" data-state="correct">P</div><div class="tile" data-state="present">A</div><div class="tile" data-state="absent">R</div><div class="tile" data-state="absent">I</div><div class="tile" data-state="present">T</div>
   </div>
   <p>P is in the right spot. A and T are in the word but elsewhere. R and I are not in it.</p>
+  <p><b>Stuck?</b> Each word comes with 2 of each hint. <b>Remove letters</b> greys out 5 letters on the keyboard that are not in the word. <b>Reveal a letter</b> shows one letter in its right spot (dashed tile).</p>
   <p>Words are common English words. Every puzzle is new and you can play as many as you like.</p>
 </div></dialog>
 
@@ -382,6 +406,45 @@ body.locked .controls{justify-content:flex-end}
     return { ok: true, error: null, game: game };
   }
 
+  /* ---------- hints (decided with Harley, 11 Nov 2026): 2 "Remove letters" and 2 "Reveal a letter" per word ---------- */
+  var ELIMINATE_COUNT = 5;
+  var ALPHABET = "abcdefghijklmnopqrstuvwxyz".split("");
+
+  /** Letters that are certainly not in the answer and that the player has not already learned from a guess or an earlier hint. */
+  function eliminationCandidates(game) {
+    var skip = {}, i;
+    game.answer.split("").forEach(function (c) { skip[c] = true; });
+    game.guesses.forEach(function (g) { g.split("").forEach(function (c) { skip[c] = true; }); });
+    (game.gone || []).forEach(function (c) { skip[c] = true; });
+    return ALPHABET.filter(function (c) { return !skip[c]; });
+  }
+  /** Rule out up to ELIMINATE_COUNT letters. Mutates game.gone. rnd() returns 0..1. Returns { ok, letters } or { ok:false, error }. */
+  function hintEliminate(game, rnd) {
+    var pool = eliminationCandidates(game);
+    if (!pool.length) return { ok: false, error: "No more letters to rule out" };
+    var picks = [];
+    while (picks.length < ELIMINATE_COUNT && pool.length) picks.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+    game.gone = (game.gone || []).concat(picks);
+    return { ok: true, letters: picks };
+  }
+  /** Positions the player does not yet know: not green in any guess and not already revealed. */
+  function revealCandidates(game) {
+    var known = {};
+    game.results.forEach(function (res) { res.forEach(function (st, i) { if (st === CORRECT) known[i] = true; }); });
+    (game.revealed || []).forEach(function (i) { known[i] = true; });
+    var out = [];
+    for (var i = 0; i < game.length; i++) if (!known[i]) out.push(i);
+    return out;
+  }
+  /** Reveal one letter in its right spot. Mutates game.revealed. Returns { ok, index, letter } or { ok:false, error }. */
+  function hintReveal(game, rnd) {
+    var pool = revealCandidates(game);
+    if (!pool.length) return { ok: false, error: "You already know every letter's spot" };
+    var i = pool[Math.floor(rnd() * pool.length)];
+    game.revealed = (game.revealed || []).concat([i]);
+    return { ok: true, index: i, letter: game.answer[i] };
+  }
+
   /** Emoji grid for sharing. */
   function shareGrid(game, colorBlind) {
     var sq = colorBlind
@@ -426,6 +489,7 @@ body.locked .controls{justify-content:flex-end}
     MAX_GUESSES: MAX_GUESSES, MODES: MODES,
     evaluateGuess: evaluateGuess, validateGuess: validateGuess, checkHardMode: checkHardMode,
     keyboardState: keyboardState, nextAnswer: nextAnswer, newGame: newGame, submitGuess: submitGuess,
+    eliminationCandidates: eliminationCandidates, hintEliminate: hintEliminate, revealCandidates: revealCandidates, hintReveal: hintReveal, ELIMINATE_COUNT: ELIMINATE_COUNT,
     shareGrid: shareGrid, emptySave: emptySave, recordCompleted: recordCompleted, normaliseSave: normaliseSave
   };
 });
@@ -458,8 +522,7 @@ if(session.mode !== 5 && session.mode !== 6) session.mode = 5;
 var mode = session.mode, game = null, tiles = [], keyEls = {}, busy = false;
 
 var $ = function(id){ return document.getElementById(id); };
-var boardEl = $("board"), resultEl = $("result"), kbEl = $("kb"), entryEl = $("entry"), inputEl = $("guess-input"), warnEl = $("warn");
-if(window.matchMedia && matchMedia("(pointer: coarse)").matches) inputEl.setAttribute("inputmode", "none"); // phones: use the on-screen keys, no native keyboard pop-up
+var boardEl = $("board"), resultEl = $("result"), kbEl = $("kb"), entryEl = $("entry"), warnEl = $("warn");
 
 /* ---------- sound (Web Audio, nothing to download; ported from the approved QuinnDom sound design) ---------- */
 var Sound = (function(){
@@ -543,9 +606,11 @@ function validGame(g, m){
   return g && g.length === m && typeof g.answer === "string" && g.answer.length === m &&
          Array.isArray(g.guesses) && Array.isArray(g.results) && g.guesses.length === g.results.length;
 }
+/* per-word state kept next to the game in the session: typed letters, hints used, letters ruled out, positions revealed */
+function initHints(g){ g.typed = ""; g.hint = {elim: 0, rev: 0}; g.gone = []; g.revealed = []; return g; }
 function startGame(m){
   var answer = E.nextAnswer(WORDS.answers[m], save.completed[String(m)]);
-  var g = E.newGame(m, answer); g.typed = "";
+  var g = initHints(E.newGame(m, answer));
   session.games[m] = g; persistSession();
   return g;
 }
@@ -553,6 +618,10 @@ function currentGame(m){
   var g = session.games[m];
   if(!validGame(g, m)) g = startGame(m);
   if(typeof g.typed !== "string") g.typed = "";
+  if(!g.hint || typeof g.hint !== "object") g.hint = {elim: 0, rev: 0};
+  g.hint.elim = Math.max(0, g.hint.elim | 0); g.hint.rev = Math.max(0, g.hint.rev | 0);
+  if(!Array.isArray(g.gone)) g.gone = [];
+  if(!Array.isArray(g.revealed)) g.revealed = [];
   return g;
 }
 
@@ -570,31 +639,37 @@ function buildBoard(){
     boardEl.appendChild(row); tiles.push(rowTiles);
   }
 }
-function setTile(t, letter, state){
+function setTile(t, letter, state, ghost){      // ghost = a letter shown by the Reveal hint (dashed tile)
   if(letter){ t.textContent = letter; t.setAttribute("data-letter", letter); } else { t.textContent = ""; t.removeAttribute("data-letter"); }
+  if(ghost && letter){ t.setAttribute("data-hint", "1"); t.setAttribute("aria-label", letter + ", hint"); } else t.removeAttribute("data-hint");
   if(state){ t.setAttribute("data-state", state); t.setAttribute("aria-label", letter + ", " + state); }
-  else { t.removeAttribute("data-state"); t.removeAttribute("aria-label"); }
+  else { t.removeAttribute("data-state"); if(!(ghost && letter)) t.removeAttribute("aria-label"); }
 }
 function paintAll(){
   for(var r = 0; r < E.MAX_GUESSES; r++){
     for(var c = 0; c < mode; c++){
-      var letter = "", state = "";
+      var letter = "", state = "", ghost = false;
       if(r < game.guesses.length){ letter = game.guesses[r][c]; state = game.results[r][c]; }
-      else if(r === game.guesses.length && game.status === "playing"){ letter = game.typed[c] || ""; }
-      setTile(tiles[r][c], letter, state);
+      else if(r === game.guesses.length && game.status === "playing"){
+        letter = game.typed[c] || "";
+        if(!letter && game.revealed.indexOf(c) >= 0){ letter = game.answer[c]; ghost = true; }
+      }
+      setTile(tiles[r][c], letter, state, ghost);
     }
   }
 }
+var ICON_BACKSPACE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 5H9l-6 7 6 7h12z"/><path d="M13 9l4 6M17 9l-4 6"/></svg>';
 function buildKeyboard(){
   kbEl.innerHTML = ""; keyEls = {};
-  var rows = ["qwertyuiop","asdfghjkl","*zxcvbnm<"];
+  var rows = ["qwertyuiop"," asdfghjkl ","*zxcvbnm<"];     // spaces = half-key gaps so the middle row sits staggered
   rows.forEach(function(rowStr){
     var row = document.createElement("div"); row.className = "kb-row";
     rowStr.split("").forEach(function(ch){
+      if(ch === " "){ var gap = document.createElement("span"); gap.className = "kb-gap"; row.appendChild(gap); return; }
       var b = document.createElement("button"); b.className = "key"; b.type = "button";
       if(ch === "*"){ b.textContent = "Enter"; b.classList.add("wide"); b.dataset.key = "enter"; b.setAttribute("aria-label","Enter"); }
-      else if(ch === "<"){ b.innerHTML = "&#9003;"; b.classList.add("wide"); b.dataset.key = "backspace"; b.setAttribute("aria-label","Backspace"); }
-      else { b.textContent = ch; b.dataset.key = ch; keyEls[ch] = b; }
+      else if(ch === "<"){ b.innerHTML = ICON_BACKSPACE; b.classList.add("wide"); b.dataset.key = "backspace"; b.setAttribute("aria-label","Delete"); }
+      else { b.textContent = ch; b.dataset.key = ch; b.setAttribute("aria-label", ch.toUpperCase()); keyEls[ch] = b; }
       row.appendChild(b);
     });
     kbEl.appendChild(row);
@@ -603,8 +678,41 @@ function buildKeyboard(){
 function paintKeys(){
   var ks = E.keyboardState(game.guesses, game.results);
   Object.keys(keyEls).forEach(function(ch){
-    if(ks[ch]) keyEls[ch].setAttribute("data-state", ks[ch]); else keyEls[ch].removeAttribute("data-state");
+    var b = keyEls[ch];
+    if(ks[ch]) b.setAttribute("data-state", ks[ch]); else b.removeAttribute("data-state");
+    var gone = !ks[ch] && game.gone.indexOf(ch) >= 0;        // ruled out by the Remove letters hint
+    b.classList.toggle("gone", gone); b.setAttribute("aria-label", ch.toUpperCase() + (gone ? ", ruled out" : ""));
   });
+}
+function paintEnter(){      // Enter turns green once the row is full
+  var k = kbEl.querySelector('[data-key="enter"]');
+  if(k) k.classList.toggle("ready", game.status === "playing" && game.typed.length === mode);
+}
+/* ---------- hints ---------- */
+function hintCfg(){
+  var c = (window.Wxrdie && window.Wxrdie.config) || {}, mh = c.maxHints || {}, v = mh[mode === 6 ? "hard" : "normal"];
+  var base = typeof v === "number" ? v : 2;
+  return {elim: base, rev: base + (c.bonusHints || 0)};     // a Mimosa from the road adds to Reveal
+}
+function hintsLeft(){ var c = hintCfg(); return {elim: Math.max(0, c.elim - game.hint.elim), rev: Math.max(0, c.rev - game.hint.rev)}; }
+function paintHints(){
+  var l = hintsLeft(), off = busy || game.status !== "playing";
+  $("hint-out-left").textContent = l.elim; $("hint-rev-left").textContent = l.rev;
+  $("btn-hint-out").disabled = off || l.elim <= 0; $("btn-hint-rev").disabled = off || l.rev <= 0;
+}
+function useEliminate(){
+  if(busy || game.status !== "playing" || hintsLeft().elim <= 0) return;
+  var r = E.hintEliminate(game, Math.random);
+  if(!r.ok){ showWarn(r.error); return; }
+  game.hint.elim++; persistSession(); paintKeys(); paintHints(); Sound.play("collect");
+  toast("Not in the word: " + r.letters.map(function(c){ return c.toUpperCase(); }).join(" "), 2800);
+}
+function useReveal(){
+  if(busy || game.status !== "playing" || hintsLeft().rev <= 0) return;
+  var r = E.hintReveal(game, Math.random);
+  if(!r.ok){ showWarn(r.error); return; }
+  game.hint.rev++; persistSession(); paintAll(); paintHints(); Sound.play("collect");
+  toast("Letter " + (r.index + 1) + " is " + r.letter.toUpperCase(), 2800);
 }
 function paintHud(){
   $("stat-guess").textContent = game.guesses.length + "/" + E.MAX_GUESSES;
@@ -618,8 +726,7 @@ function paintHud(){
   $("set-cb").checked = !!settings.colorBlind;
   $("set-sfx").checked = !!settings.sfx; $("set-vol").value = Math.round(settings.volume * 100);
   $("btn-sound").setAttribute("aria-pressed", !!settings.sfx);
-  inputEl.maxLength = mode; inputEl.value = game.typed; inputEl.disabled = busy || game.status !== "playing";
-  $("btn-submit").disabled = busy || game.status !== "playing";
+  paintHints(); paintEnter();
 }
 function paintResult(){
   kbEl.classList.toggle("hidden", game.status !== "playing");
@@ -650,13 +757,14 @@ function typeLetter(ch){
   game.typed += ch;
   var t = tiles[game.guesses.length][game.typed.length - 1];
   setTile(t, ch, ""); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop");
-  inputEl.value = game.typed; clearWarn(); persistSession();
+  clearWarn(); persistSession(); paintEnter();
 }
 function backspace(){
   if(busy || game.status !== "playing" || !game.typed.length) return;
-  var t = tiles[game.guesses.length][game.typed.length - 1];
+  var c = game.typed.length - 1, t = tiles[game.guesses.length][c];
   game.typed = game.typed.slice(0, -1);
-  setTile(t, "", ""); inputEl.value = game.typed; clearWarn(); persistSession();
+  var hl = game.revealed.indexOf(c) >= 0 ? game.answer[c] : "";     // a revealed letter shows again once the typed one is removed
+  setTile(t, hl, "", !!hl); clearWarn(); persistSession(); paintEnter();
 }
 function shakeRow(r){
   var row = boardEl.children[r]; row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
@@ -666,13 +774,13 @@ function submit(){
   var rowIdx = game.guesses.length, word = game.typed;
   var res = E.submitGuess(game, word, VALID[mode], {hardMode: settings.hardMode});
   if(!res.ok){ shakeRow(rowIdx); showWarn(friendlyError(res.error)); return; }
-  game.typed = ""; inputEl.value = ""; clearWarn(); persistSession();
+  game.typed = ""; clearWarn(); persistSession();
   revealRow(rowIdx, word, game.results[rowIdx]);
 }
 function revealRow(r, word, result){
   busy = true; paintHud();
   var done = function(){
-    paintKeys(); busy = false; paintHud();
+    paintKeys(); busy = false; paintAll(); paintHud();
     if(game.status === "won"){
       toast(MESSAGES[game.guesses.length - 1], 1800);
       Sound.play("solved");
@@ -695,7 +803,7 @@ function finishGame(){
   E.recordCompleted(save, mode, game.answer); persistSave(); persistSession();
   paintHud(); setTimeout(paintResult, REDUCED ? 0 : 900);
   if(typeof window.Wxrdie.onFinish === "function"){
-    try{ window.Wxrdie.onFinish({mode: mode, word: game.answer, won: game.status === "won", guesses: game.guesses.length}); }catch(e){}
+    try{ window.Wxrdie.onFinish({mode: mode, word: game.answer, won: game.status === "won", guesses: game.guesses.length, hintsUsed: game.hint.elim + game.hint.rev}); }catch(e){}
   }
 }
 function nextPuzzle(){
@@ -722,8 +830,10 @@ function fallbackCopy(text, cb){
 }
 
 /* ---------- events ---------- */
+kbEl.addEventListener("mousedown", function(e){ if(e.target.closest(".key")) e.preventDefault(); });   // keys never steal focus, so Enter always means "submit"
 kbEl.addEventListener("click", function(e){
   var b = e.target.closest(".key"); if(!b) return;
+  if(navigator.vibrate && window.matchMedia && matchMedia("(pointer: coarse)").matches){ try{ navigator.vibrate(6); }catch(x){} }
   var k = b.dataset.key;
   if(k === "enter") submit(); else if(k === "backspace") backspace(); else typeLetter(k);
 });
@@ -737,14 +847,8 @@ document.addEventListener("keydown", function(e){
 });
 $("mode-5").addEventListener("click", function(){ switchMode(5); });
 $("mode-6").addEventListener("click", function(){ switchMode(6); });
-inputEl.addEventListener("input", function(){
-  if(busy || game.status !== "playing"){ inputEl.value = game.typed; return; }
-  var v = inputEl.value.toLowerCase().replace(/[^a-z]/g, "").slice(0, mode);
-  game.typed = v; inputEl.value = v; clearWarn();
-  for(var c = 0; c < mode; c++) setTile(tiles[game.guesses.length][c], v[c] || "", "");
-  persistSession();
-});
-$("submit-form").addEventListener("submit", function(e){ e.preventDefault(); submit(); });
+$("btn-hint-out").addEventListener("click", useEliminate);
+$("btn-hint-rev").addEventListener("click", useReveal);
 $("btn-sound").addEventListener("click", function(){
   settings.sfx = !settings.sfx; settings.sfxSet = true; store(KEYS.settings, settings); paintHud();
   if(settings.sfx){ Sound.play("collect"); toast("Sound on"); } else toast("Sound off");
@@ -771,11 +875,12 @@ document.querySelectorAll("dialog").forEach(function(d){
 
 /* ---------- public hooks for the QuinnDom shell ---------- */
 window.Wxrdie = {
+  config: { maxHints: { easy: 2, normal: 2, hard: 2 }, bonusHints: 0 },   // per hint type, per word (2 Remove letters + 2 Reveal a letter); bonusHints (Mimosa) adds to Reveal
   getSave: function(){ return JSON.parse(JSON.stringify(save)); },          // goes into the shared save file
   loadSave: function(s){ save = E.normaliseSave(s); persistSave(); showMode(); },
   start: function(o){                                                        // shell hook: launch a specific word, e.g. a boss fight. opts = { difficulty, index }
     o = o || {}; document.body.classList.toggle("locked", !!o.locked); var m = o.difficulty === "hard" ? 6 : 5; if(busy) busy = false; mode = m; persistSession();
-    var list = WORDS.answers[m], g = E.newGame(m, typeof o.index === "number" ? list[o.index % list.length] : E.nextAnswer(list, save.completed[String(m)])); g.typed = "";
+    var list = WORDS.answers[m], g = E.newGame(m, typeof o.index === "number" ? list[o.index % list.length] : E.nextAnswer(list, save.completed[String(m)])); initHints(g);
     session.games[m] = g; persistSession(); showMode();
   },
   onFinish: null                                                              // shell sets: function({mode, word, won, guesses}){ ...rewards... }

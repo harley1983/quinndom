@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var RES = ["wood", "stone", "metal", "food", "mimosa", "psilocybe"];
+  var RES = ["wood", "stone", "metal", "food", "coins", "mimosa", "psilocybe"];   // coins: earned from puzzles; will buy Mimosa and Psilocybe in the store (later)
   var HEROES = { navigator: { name: "The Navigator", puzzles: ["elmundo", "zame"] }, scholar: { name: "The Scholar", puzzles: ["wxrdie", "mapnitude"] }, engineer: { name: "The Engineer", puzzles: ["kuduso", "zame"] } };
   var PUZZLES = {
     elmundo:   { name: "El Mundo",  main: "food",  blurb: "Find the hidden country." },
@@ -38,7 +38,8 @@
   var BUILDING_ORDER = ["bamboo", "timber", "quarry", "mycelium", "solar", "herohall", "barracks", "armory", "hospital"];
   var MAX_LEVEL = 3, PUZZLE_UNLOCK_LEVEL = 2;
   var REWARD_BASE = { easy: 8, normal: 14, hard: 20 };
-  var START = { wood: 40, stone: 30, metal: 12, food: 40, mimosa: 0, psilocybe: 0 };
+  var COIN_BASE = { easy: 3, normal: 5, hard: 8 };   // coins paid on top of the resources for one solved puzzle (tune later)
+  var START = { wood: 40, stone: 30, metal: 12, food: 40, coins: 0, mimosa: 0, psilocybe: 0 };
   var MARCH_PER_DAY = 3, MARCH_CAP = 9;
   var TROOPS_PER_TRAIN = 5, TRAIN_FOOD = 10, ARMOR_METAL = 3, TROOP_CAP_PER_LEVEL = 20, ARMOR_CAP_PER_LEVEL = 5, ARMOR_REDUCTION = 0.03, ARMOR_REDUCTION_MAX = 0.4;
   var REST_SECONDS = [90, 60, 40];            // Hospital level 1, 2, 3. Prototype values: the real game would use a short real-world wait.
@@ -175,11 +176,12 @@
     var got = {}; BUILDING_ORDER.forEach(function (id) { var b = BUILDINGS[id]; if (b.produce && s.buildings[id]) Object.keys(b.produce).forEach(function (r) { var n = b.produce[r] * s.buildings[id]; got[r] = (got[r] || 0) + n; }); });
     addRes(s, got); return { ok: true, produced: got, march: MARCH_PER_DAY };
   }
-  /** Resources for one solved puzzle: 60% in the puzzle's own resource, the rest in Wood, Stone and Food. Level 3 buildings pay x1.25. */
+  /** Resources for one solved puzzle: 60% in the puzzle's own resource, the rest in Wood, Stone and Food, plus coins. Level 3 buildings pay x1.25. */
   function puzzleReward(s, puzzle, difficulty) {
     var total = REWARD_BASE[difficulty] * (s.buildings[puzzleBuilding(puzzle)] >= 3 ? 1.25 : 1), main = Math.round(total * 0.6), rest = Math.round(total) - main, out = {};
     out[PUZZLES[puzzle].main] = main; var others = ["wood", "stone", "food"].filter(function (r) { return r !== PUZZLES[puzzle].main; });
-    others.forEach(function (r, i) { out[r] = (out[r] || 0) + Math.floor(rest / others.length) + (i < rest % others.length ? 1 : 0); }); return out;
+    others.forEach(function (r, i) { out[r] = (out[r] || 0) + Math.floor(rest / others.length) + (i < rest % others.length ? 1 : 0); });
+    out.coins = Math.round(COIN_BASE[difficulty] * (s.buildings[puzzleBuilding(puzzle)] >= 3 ? 1.25 : 1)); return out;
   }
   /** A puzzle was finished. A win pays once a day per puzzle and gives one march point. */
   function puzzleDone(s, puzzle, difficulty, won) {
@@ -253,7 +255,7 @@
 
   return {
     RES: RES, HEROES: HEROES, PUZZLES: PUZZLES, PUZZLE_ORDER: PUZZLE_ORDER, BUILDINGS: BUILDINGS, BUILDING_ORDER: BUILDING_ORDER, MAX_LEVEL: MAX_LEVEL, PUZZLE_UNLOCK_LEVEL: PUZZLE_UNLOCK_LEVEL,
-    ROAD: ROAD, BOSSES: BOSSES, REWARD_BASE: REWARD_BASE, REST_SECONDS: REST_SECONDS, TRAIN_FOOD: TRAIN_FOOD, TROOPS_PER_TRAIN: TROOPS_PER_TRAIN, ARMOR_METAL: ARMOR_METAL, HERO_MAX: HERO_MAX,
+    ROAD: ROAD, BOSSES: BOSSES, REWARD_BASE: REWARD_BASE, COIN_BASE: COIN_BASE, REST_SECONDS: REST_SECONDS, TRAIN_FOOD: TRAIN_FOOD, TROOPS_PER_TRAIN: TROOPS_PER_TRAIN, ARMOR_METAL: ARMOR_METAL, HERO_MAX: HERO_MAX,
     newState: newState, canAfford: canAfford, upgradeCost: upgradeCost, credit: credit, citizens: citizens, housing: housing, wellbeing: wellbeing, build: build, upgrade: upgrade,
     puzzleUnlocked: puzzleUnlocked, puzzleBuilding: puzzleBuilding, unlockedPuzzles: unlockedPuzzles, maxHp: maxHp, attackPower: attackPower, armorReduction: armorReduction,
     troopCap: troopCap, armorCap: armorCap, trainTroops: trainTroops, forgeArmor: forgeArmor, heroMaxLevel: heroMaxLevel, heroCost: heroCost, levelHero: levelHero, heroBonus: heroBonus,

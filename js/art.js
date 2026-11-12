@@ -107,7 +107,7 @@ var Art = (function () {
   }
 
 
-  /* resource icons, 12 x 12 pixels: wood log, stone, metal ingot, food (wheat); aria-label carries the name */
+  /* resource icons, 12 x 12 pixels: wood log, stone, metal ingot, food (red apple), coin; aria-label carries the name */
   var RES = {
     wood: { pal: { o: '#14261B', b: '#A8673F', B: '#C98A5A', r: '#E9D8A6', d: '#7A4A2B' }, rows: [
       '............', '............', '..oooooooo..', '.obBBBBBBdo.', 'orrooBBBBBdo', 'orroorBBBBdo', 'orroorBBBBdo', 'orrooBBBBBdo', '.obBBBBBBdo.', '..oooooooo..', '............', '............'] },
@@ -115,8 +115,10 @@ var Art = (function () {
       '............', '............', '....oooo....', '..ooshhsoo..', '.oshhsssSSo.', '.oshssssSSo.', 'ossssssSSSSo', 'osssssSSSSSo', 'oSSSSSSSSSSo', '.ooSSSSSSoo.', '...oooooo...', '............'] },
     metal: { pal: { o: '#14261B', m: '#8FA3B5', M: '#5D6B78', h: '#EEF3F8' }, rows: [
       '............', '............', '...oooooooo.', '..ohhhhhhmo.', '.ohhhhhhmmMo', 'ommmmmmmmMMo', 'ommmmmmmMMMo', 'oMMMMMMMMMo.', '.ooooooooo..', '............', '............', '............'] },
-    food: { pal: { o: '#14261B', g: '#7BC67A', f: '#237A43', y: '#F7C948', Y: '#E9C46A' }, rows: [
-      '.....oo.....', '....oyyo....', '...oyYYyo...', '..oyyYYyyo..', '..oYyyyyYo..', '...oyYYyo...', '....oyyo.oo.', '..oo.oYo.ffo', '.offo.oo.fgo', '.ofgfo..ofo.', '..ofgfoofo..', '...oooooo...'] }
+    food: { pal: { o: '#14261B', r: '#D9342B', d: '#A12220', h: '#F6A09A', s: '#6B4B30', g: '#7BC67A', f: '#237A43' }, rows: [
+      '......so....', '.....sogfo..', '..ooo.ogfgo.', '.orrroooooo.', 'orhhrrrrrdro', 'orhrrrrrrrdo', 'orrrrrrrrrdo', 'orrrrrrrrddo', 'orrrrrrrrddo', '.orrrrrrddo.', '..ordrrddo..', '...oooooo...'] },
+    coin: { pal: { o: '#14261B', y: '#F7C948', Y: '#E9A82A', h: '#FFF3C4' }, rows: [
+      '....oooo....', '..ooyyyyoo..', '.oyyhhyyyYo.', '.oyhyyyyyYo.', 'oyhyyYYyyyYo', 'oyhyyYYyyyYo', 'oyyyyYYyyyYo', 'oyyyyYYyyYYo', '.oyyyyyyyYo.', '.oYyyyyyYYo.', '..ooYYYYoo..', '....oooo....'] }
   };
   RES.flame = { pal: { o: '#14261B', r: '#C8693D', y: '#F7C948', w: '#FFF3C4' }, rows: [
       '.....oo.....', '....orro....', '....orro....', '...orrrro...', '..orryyrro..', '..orryyyro..', '.orryywyyro.', '.orryywwyro.', '.orryywwyro.', '..orryyyro..', '...orrrro...', '....oooo....'] };

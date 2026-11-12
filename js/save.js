@@ -11,7 +11,7 @@ var Save = (function () {
       cityName: '',
       createdAt: null,
       settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
-      resources: { wood: 0, stone: 0, metal: 0, food: 0 },
+      resources: { wood: 0, stone: 0, metal: 0, food: 0, coins: 0 },
       daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
       backup: { lastExport: null, snoozedOn: null },
       passport: { stamps: [], days: {} }   // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
@@ -31,7 +31,7 @@ var Save = (function () {
     var v = Number(s.volume);
     d.settings.volume = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
     var r = raw.resources || {};
-    ['wood', 'stone', 'metal', 'food'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    ['wood', 'stone', 'metal', 'food', 'coins'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
     var dl = raw.daily || {}, key = /^\d{4}-\d{2}-\d{2}$/;
     function whole(n) { n = Math.floor(Number(n)); return isFinite(n) && n > 0 ? n : 0; }
     d.daily.checkinDay = key.test(dl.checkinDay) ? dl.checkinDay : null;
