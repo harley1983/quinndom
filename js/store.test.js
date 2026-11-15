@@ -42,4 +42,13 @@ test("20 Stone trade for 1 Metal", () => {
 });
 test("no trade pays coins and none takes them", () => { S.TRADES.forEach((t) => { assert.notStrictEqual(t.give, "coins"); assert.notStrictEqual(t.get, "coins"); }); });
 test("bad trades are refused", () => { assert.ok(!S.trade(R({ wood: 5 }), "wood-metal", 1).ok); assert.ok(!S.trade(R({ wood: 5 }), "wood-stone", 0).ok); assert.ok(!S.trade(R({ wood: 5 }), "wood-stone", 6).ok); });
+test("new Journey coins move into the city once", () => {
+  let r = S.collectJourney(R({ coins: 2 }), 0, 15); assert.strictEqual(r.gained, 15); assert.strictEqual(r.resources.coins, 17); assert.strictEqual(r.taken, 15);
+  r = S.collectJourney(r.resources, r.taken, 15); assert.strictEqual(r.gained, 0); assert.strictEqual(r.resources.coins, 17);
+  r = S.collectJourney(r.resources, r.taken, 21); assert.strictEqual(r.gained, 6); assert.strictEqual(r.resources.coins, 23);
+});
+test("a reset Journey does not take coins away or pay twice", () => {
+  let r = S.collectJourney(R({ coins: 17 }), 15, 3); assert.strictEqual(r.gained, 0); assert.strictEqual(r.resources.coins, 17); assert.strictEqual(r.taken, 3);
+  r = S.collectJourney(r.resources, r.taken, 10); assert.strictEqual(r.gained, 7);
+});
 console.log("\n" + passed + " passed");

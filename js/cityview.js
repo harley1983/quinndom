@@ -95,7 +95,15 @@ var CityView = (function () {
       (t.civic ? '<small>Part of your starting town. It stays here.</small>' + (b.type === 'market' ? '<button class="pbtn" id="c-info-store">Open the store</button>' : '') : '<div class="irow"><span>Level ' + b.level + '</span><span>' + Art.res('credit') + Buildings.value(b.type, b.level) + ' Credit</span></div><small>Upgrades with Metal come in a later step.</small>') + '<button class="pbtn light" id="c-info-x">Close</button>';
   }
   /* ---------------- the store (tap the Market) ---------------- */
+  /* move newly earned Journey coins into the city (the Journey save is separate: quinndom.journey.v3) */
+  function collectJourneyCoins() {
+    var jc = 0; try { var j = JSON.parse(window.localStorage.getItem('quinndom.journey.v3') || '{}'); jc = j && j.coins; } catch (e) {}
+    var cur = Save.get(), r = Store.collectJourney(cur.resources, cur.journeyCoins, jc);
+    if (r.gained > 0 || r.taken !== cur.journeyCoins) Save.update({ resources: r.resources, journeyCoins: r.taken });
+    return r.gained;
+  }
   function openStore(msg) {
+    var got = collectJourneyCoins(); if (got > 0) { paintBar(); if (!msg) msg = { kind: 'ok', text: 'Collected ' + got + ' coins from the Journey.' }; }
     var old = node.querySelector('.c-modal.store'); if (old) old.remove();
     var s = Save.get(), res = s.resources, day = Clock.dayKey(), left = Store.left(s.store, day), stock = Store.stock(day);
     function chip(k, n) { return '<span class="cost">' + Art.res(k) + n + '</span>'; }
@@ -543,7 +551,7 @@ var CityView = (function () {
     node.__enter = function () {
       active = true; S.selected = null; S.pending = null; S.hover = S.cursor;
       if (!/notransition/.test(location.search)) trans = Date.now();
-      refreshAll();
+      collectJourneyCoins(); refreshAll();
       if (layout()) requestRender();
       clearInterval(ambTimer);
       lastTick = 0; if (!looping) { looping = true; setTimeout(loop, 33); }

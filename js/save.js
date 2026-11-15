@@ -15,6 +15,7 @@ var Save = (function () {
       createdAt: null,
       settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
       resources: { wood: 0, stone: 0, metal: 0, food: 0, coins: 0, mimosa: 0, psilocybe: 0 },
+      journeyCoins: 0,   // Journey coins already moved into the city's coins (see Store.collectJourney)
       store: { day: null, bought: { mimosa: 0, psilocybe: 0 } },   // what was bought from today's store stock (js/store.js)
       daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
       backup: { lastExport: null, snoozedOn: null },
@@ -37,6 +38,7 @@ var Save = (function () {
     d.settings.volume = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
     var r = raw.resources || {};
     ['wood', 'stone', 'metal', 'food', 'coins', 'mimosa', 'psilocybe'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    var jc = Math.floor(Number(raw.journeyCoins)); d.journeyCoins = isFinite(jc) && jc > 0 ? jc : 0;
     var so = raw.store || {};
     if (/^\d{4}-\d{2}-\d{2}$/.test(so.day) && so.bought) { d.store.day = so.day; ['mimosa', 'psilocybe'].forEach(function (k) { var n = Math.floor(Number(so.bought[k])); d.store.bought[k] = isFinite(n) && n > 0 ? Math.min(n, 99) : 0; }); }
     var dl = raw.daily || {}, key = /^\d{4}-\d{2}-\d{2}$/;
@@ -101,6 +103,7 @@ var Save = (function () {
       createdAt: patch.createdAt !== undefined ? patch.createdAt : cur.createdAt,
       settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings,
       resources: patch.resources || cur.resources,
+      journeyCoins: patch.journeyCoins !== undefined ? patch.journeyCoins : cur.journeyCoins,
       store: patch.store || cur.store,
       daily: patch.daily || cur.daily,
       backup: patch.backup ? Object.assign({}, cur.backup, patch.backup) : cur.backup,

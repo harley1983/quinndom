@@ -44,6 +44,15 @@ var Store = (function () {
     return { ok: true, resources: res };
   }
 
-  return { PRICES: PRICES, TRADES: TRADES, stock: stock, left: left, buy: buy, trade: trade, boughtToday: boughtToday };
+  /* Coins picked up on the Journey road live in the Journey's own save. The city takes only what it has not taken before:
+     `taken` is the Journey coin count already moved over. The Journey keeps its own count (nothing is removed there), and if the Journey was reset the marker resets with it. */
+  function collectJourney(resources, taken, journeyCoins) {
+    var j = Math.max(0, Math.floor(Number(journeyCoins)) || 0), t = Math.max(0, Math.floor(Number(taken)) || 0);
+    if (j < t) return { resources: resources, taken: j, gained: 0 };
+    var res = Object.assign({}, resources); res.coins = (res.coins || 0) + (j - t);
+    return { resources: res, taken: j, gained: j - t };
+  }
+
+  return { collectJourney: collectJourney, PRICES: PRICES, TRADES: TRADES, stock: stock, left: left, buy: buy, trade: trade, boughtToday: boughtToday };
 })();
 if (typeof module !== 'undefined') module.exports = Store;
