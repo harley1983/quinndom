@@ -1,7 +1,10 @@
 /* Save module: one JSON save in localStorage, with export/import as the backup.
    Falls back to memory if the browser blocks storage. */
 var Save = (function () {
-  var KEY = 'quinndom.save.v1';
+  /* ?sandbox=1 uses a separate save (with starter resources) so the city can be tested without touching the real save */
+  var SANDBOX = false;
+  try { SANDBOX = new URLSearchParams(window.location.search).get('sandbox') === '1'; } catch (e) {}
+  var KEY = SANDBOX ? 'quinndom.save.sandbox' : 'quinndom.save.v1';
   var memory = null;
 
   function defaults() {
@@ -14,7 +17,8 @@ var Save = (function () {
       resources: { wood: 0, stone: 0, metal: 0, food: 0, coins: 0 },
       daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
       backup: { lastExport: null, snoozedOn: null },
-      passport: { stamps: [], days: {} }   // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
+      passport: { stamps: [], days: {} },  // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
+      city: typeof City !== 'undefined' ? City.emptyState() : { size: 16, buildings: [] }    // starter town; buildings: [{type, x, y, level}]; roads are buildings of type 'road' (see js/city.js)
     };
   }
 
@@ -58,6 +62,14 @@ var Save = (function () {
         result: ['stamp', 'repeat', 'missed'].indexOf(day.result) >= 0 ? day.result : null
       };
     });
+    d.city = typeof City !== 'undefined' ? City.clean(raw.city) : d.city;
+    return d;
+  }
+
+  function sandboxSeed() {
+    var d = defaults();
+    d.playerName = 'Tester'; d.cityName = 'Sunleaf Quarter'; d.createdAt = new Date().toISOString();
+    d.resources = { wood: 300, stone: 300, metal: 200, food: 100, coins: 0 };
     return d;
   }
 
@@ -67,7 +79,7 @@ var Save = (function () {
     if (text) {
       try { var c = clean(JSON.parse(text)); if (c) { memory = c; return c; } } catch (e) {}
     }
-    if (!memory) memory = defaults();
+    if (!memory) memory = SANDBOX ? sandboxSeed() : defaults();
     return memory;
   }
 
@@ -88,7 +100,8 @@ var Save = (function () {
       resources: patch.resources || cur.resources,
       daily: patch.daily || cur.daily,
       backup: patch.backup ? Object.assign({}, cur.backup, patch.backup) : cur.backup,
-      passport: patch.passport || cur.passport
+      passport: patch.passport || cur.passport,
+      city: patch.city || cur.city
     });
     write(next);
     return next;
@@ -133,5 +146,5 @@ var Save = (function () {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
-  return { load: load, get: get, update: update, hasCity: hasCity, importText: importText, download: download, backupDue: backupDue, snoozeBackup: snoozeBackup, exportText: exportText };
+  return { isSandbox: function () { return SANDBOX; }, load: load, get: get, update: update, hasCity: hasCity, importText: importText, download: download, backupDue: backupDue, snoozeBackup: snoozeBackup, exportText: exportText };
 })();
