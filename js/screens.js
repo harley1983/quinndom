@@ -62,7 +62,7 @@ var Screens = (function () {
           '<p class="w3-body">Three citizens are already waiting at the camp. They brought snacks. Your city lives in this browser like a snail in its shell, so export a save file now and then.</p>' +
           '<p class="w3-tag s">Fill in the boards on the shore.</p>' +
           '<p class="w3-err" id="w-err2" role="alert"></p>' +
-          '<button class="w3-go" id="w-plant">Plant the first tower</button>' +
+          '<button class="w3-go" id="w-plant">Step into your \'dom\'</button>' +
           '<button class="w3-link" id="w-back">Back</button>' +
         '</div>' +
         '<div class="w3-box a" id="w-boxa" hidden><label for="pname">What should citizens call you?</label>' +
@@ -118,7 +118,7 @@ var Screens = (function () {
       Save.update({ playerName: name, cityName: city, createdAt: new Date().toISOString() });
       Sound.play('stamp');
       Screens.refreshHome();
-      show('home');
+      show('city');
     });
 
     // import a save file
@@ -196,7 +196,7 @@ var Screens = (function () {
       { done: v.checkedIn, label: 'Check in', sub: v.checkedIn ? 'Reward collected' : 'Reward waiting', go: null },
       { done: sm.done, label: 'Passport prompt', sub: sm.line + ' \u00B7 ' + sm.stamps + ' / ' + sm.total + ' stamps', go: 'passport' },
       { done: false, label: 'Puzzles and Journey', sub: 'Five puzzles and the Journey road', href: 'puzzles/' },
-      { done: false, label: 'Citizens and city', sub: 'Arrives in Releases 3 and 4', soon: true },
+      { done: false, label: 'Your city', sub: 'Build on your floating island', go: 'city' },
       { done: false, label: 'World-map boss', sub: 'Arrives in Release 5', soon: true }
     ];
     $('#h-tasks').innerHTML = tasks.map(function (t, i) {
@@ -328,6 +328,7 @@ var Screens = (function () {
       startAmbience: function () { Sound.startAmbience('garden'); }, stopAmbience: function () { Sound.stopAmbience(); },
       isSfx: function () { return Save.get().settings.sfx === true; },
       toggleSfx: function () { var on = Save.get().settings.sfx !== true; Save.update({ settings: { sfx: on } }); applySoundSettings(); return on; } });
+    CityView.build(root, { el: el, show: show, sound: function (n) { Sound.play(n); } });
     document.addEventListener('click', function (e) {
       var b = e.target.closest('.pbtn, .plink, .stepb');
       if (b && !b.id.match(/^(w-s0|w-s1|sw-sfx)$/) && !b.closest('#s-moments')) Sound.play('tap');
@@ -336,7 +337,9 @@ var Screens = (function () {
     Clock.onNewDay(function () { refreshHome(); toast('A new day has started', true); var h = root.querySelector('#screen-home'); if (h && h.classList.contains('active')) checkinCard(); });
     Clock.start();
     refreshHome();
-    show(Save.hasCity() ? 'home' : 'welcome');
+    var want = null;
+    try { want = new URLSearchParams(location.search).get('screen'); } catch (e) {}   // test option: ?screen=city (also home, passport)
+    show(Save.hasCity() ? (['city', 'home', 'passport'].indexOf(want) >= 0 ? want : 'home') : 'welcome');
   }
 
   return { init: init, refreshHome: refreshHome, show: function (n) { show(n); } };

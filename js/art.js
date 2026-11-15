@@ -124,6 +124,8 @@ var Art = (function () {
       '.....oo.....', '....orro....', '....orro....', '...orrrro...', '..orryyrro..', '..orryyyro..', '.orryywyyro.', '.orryywwyro.', '.orryywwyro.', '..orryyyro..', '...orrrro...', '....oooo....'] };
   RES.ice = { pal: { o: '#14261B', c: '#7ADFF2', w: '#FFFFFF', b: '#3A7BD5' }, rows: [
       '.....oo.....', '..o..oc.o...'.slice(0,12), '.occ.cw.cco.', '..occcwcco..', '...ocwwco...', 'ooccwwwwccoo', 'occwwwwwwcco', '...ocwwco...', '..occcwcco..', '.occ.cw.cco.', '..o..oc.o...', '.....oo.....'] };
+  RES.credit = { pal: { o: '#14261B', y: '#F7C948', Y: '#E9A82A', h: '#FFF3C4' }, rows: [
+      '.....oo.....', '....oyyo....', '....oyyo....', 'ooooyhyyoooo', 'oyyyyhyyyYYo', '.oyyyyyyYYo.', '..oyyyyYYo..', '..oyyYYyYo..', '.oyyYoYyyYo.', '.oyYo..oYYo.', '.ooo....ooo.', '............'] };
   function resIcon(k, cls) {
     var d = RES[k]; if (!d) return '';
     var s = sprite(d.rows, 'resi ' + (cls || ''), d.pal);
