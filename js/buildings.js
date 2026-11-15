@@ -31,7 +31,7 @@ var Buildings = (function () {
      are not in the build tray, and are worth 0 Credit (no cost x level). */
   var CIVIC = [
     { id: 'hospital', name: 'Hospital', group: 'civic', civic: true, w: 2, d: 2, h: 40, cost: {}, effect: 'Cares for citizens (services come in a later release)' },
-    { id: 'market', name: 'Market', group: 'civic', civic: true, w: 2, d: 1, h: 26, cost: {}, effect: 'Market stalls; the store opens here in a later step' },
+    { id: 'market', name: 'Market', group: 'civic', civic: true, w: 2, d: 1, h: 26, cost: {}, effect: 'Market stalls. Open the store to spend coins and trade resources.' },
     { id: 'corner-shop', name: 'Corner shop', group: 'civic', civic: true, w: 1, d: 1, h: 24, cost: {}, effect: 'A friendly neighbourhood shop' }
   ];
   var BY_ID = {};

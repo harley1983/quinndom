@@ -120,6 +120,10 @@ var Art = (function () {
     coin: { pal: { o: '#14261B', y: '#F7C948', Y: '#E9A82A', h: '#FFF3C4' }, rows: [
       '....oooo....', '..ooyyyyoo..', '.oyyhhyyyYo.', '.oyhyyyyyYo.', 'oyhyyYYyyyYo', 'oyhyyYYyyyYo', 'oyyyyYYyyyYo', 'oyyyyYYyyYYo', '.oyyyyyyyYo.', '.oYyyyyyYYo.', '..ooYYYYoo..', '....oooo....'] }
   };
+  RES.mimosa = { pal: { o: '#14261B', y: '#F7C948', Y: '#E9A82A', h: '#FFF3C4', g: '#7BC67A', f: '#237A43' }, rows: [
+      '............', '...oo..oo...', '..oyyooyyo..', '.oyhyyyyYyo.', '.oyyyyhyyYo.', '..oyyyyyYo..', '...ooYyyoo..', '....ogfo....', '....ofgo....', '...ogfo.....', '...ofo......', '............'] };
+  RES.psilocybe = { pal: { o: '#14261B', c: '#9B5FC7', C: '#6F3FA0', h: '#D9B8F0', s: '#E9D8A6', S: '#B8A070' }, rows: [
+      '............', '...oooooo...', '..occhhcco..', '.occhcccCCo.', '.occcccccCCo', '.oCCCCCCCCo.', '..oooossoo..', '.....osSo...', '.....osSo...', '.....osSo...', '....ooSSoo..', '............'] };
   RES.flame = { pal: { o: '#14261B', r: '#C8693D', y: '#F7C948', w: '#FFF3C4' }, rows: [
       '.....oo.....', '....orro....', '....orro....', '...orrrro...', '..orryyrro..', '..orryyyro..', '.orryywyyro.', '.orryywwyro.', '.orryywwyro.', '..orryyyro..', '...orrrro...', '....oooo....'] };
   RES.ice = { pal: { o: '#14261B', c: '#7ADFF2', w: '#FFFFFF', b: '#3A7BD5' }, rows: [
