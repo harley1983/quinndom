@@ -91,8 +91,28 @@ var CityView = (function () {
     if (!b || S.tool !== 'select') { box.hidden = true; return; }
     var t = Buildings.get(b.type);
     box.hidden = false;
-    box.innerHTML = '<span class="tag">' + groupName(t.group) + ' · ' + sizeText(t) + '</span><b>' + t.name + '</b><p>' + t.effect + '</p>' +
-      (t.civic ? '<small>Part of your starting town. It stays here.</small>' + (b.type === 'market' ? '<button class="pbtn" id="c-info-store">Open the store</button>' : '') : '<div class="irow"><span>Level ' + b.level + '</span><span>' + Art.res('credit') + Buildings.value(b.type, b.level) + ' Credit</span></div><small>Upgrades with Metal come in a later step.</small>') + '<button class="pbtn light" id="c-info-x">Close</button>';
+    var head = '<span class="tag">' + groupName(t.group) + ' · ' + sizeText(t) + '</span><b>' + t.name + '</b><p>' + t.effect + '</p>', body = '';
+    if (t.civic) body = '<small>Part of your starting town. It stays here.</small>' + (b.type === 'market' ? '<button class="pbtn" id="c-info-store">Open the store</button>' : '');
+    else {
+      body = '<div class="irow"><span>Level ' + b.level + ' of ' + Buildings.MAX_LEVEL + '</span><span>' + Art.res('credit') + Buildings.value(b.type, b.level) + ' Credit</span></div>';
+      var made = Buildings.produceAt(b.type, b.level), mk = Object.keys(made);
+      if (mk.length) body += '<div class="irow"><span>Makes per day</span><span>' + mk.map(function (k) { return Art.res(k) + made[k]; }).join(' ') + '</span></div>';
+      var up = Buildings.upgradeCost(b.type, b.level), res = Save.get().resources;
+      if (up) {
+        var can = (res.metal || 0) >= up.metal, nm = Buildings.produceAt(b.type, b.level + 1), nk = Object.keys(nm);
+        body += '<button class="pbtn" id="c-info-up"' + (can ? '' : ' disabled') + '>Upgrade to level ' + (b.level + 1) + ' · ' + Art.res('metal') + up.metal + '</button>' +
+          '<small>' + (can ? 'Level ' + (b.level + 1) + ' is worth ' + Buildings.value(b.type, b.level + 1) + ' Credit' + (nk.length ? ' and makes ' + nk.map(function (k) { return nm[k] + ' ' + (NAMES[k] || k); }).join(', ') + ' a day' : '') + '.' : 'You need ' + (up.metal - (res.metal || 0)) + ' more Metal.') + '</small>';
+      } else if (Buildings.canUpgrade(b.type)) body += '<small>Top level. Nothing more to upgrade here.</small>';
+    }
+    box.innerHTML = head + body + '<button class="pbtn light" id="c-info-x">Close</button>';
+  }
+  function doUpgrade() {
+    var cur = Save.get(), i = S.selected; if (i === null) return;
+    var r = City.upgrade(cur.city, cur.resources, i);
+    if (!r.ok) { setStatus(r.reason === 'cost' ? 'You need ' + r.missing.metal + ' more Metal.' : 'That building cannot be upgraded.', 'bad'); return; }
+    Save.update({ city: r.state, resources: r.resources }); host.sound('collect');
+    var b = Save.get().city.buildings[i];
+    refreshAll(); announce(bname(b.type) + ' is now level ' + b.level); setStatus(bname(b.type) + ' upgraded to level ' + b.level + '.', 'good'); requestRender();
   }
   /* ---------------- the store (tap the Market) ---------------- */
   /* move newly earned Journey coins into the city (the Journey save is separate: quinndom.journey.v3) */
@@ -531,7 +551,7 @@ var CityView = (function () {
       if (e.target.id === 'c-place' && S.pending) { var p = S.pending; tryPlace(S.building, p.x, p.y); }
       else if (e.target.id === 'c-cancel') { S.pending = null; defaultStatus(); requestRender(); }
     });
-    q('#c-info').addEventListener('click', function (e) { if (e.target.id === 'c-info-store') { host.sound('tap'); openStore(); return; } if (e.target.id === 'c-info-x') { S.selected = null; paintInfo(); requestRender(); } });
+    q('#c-info').addEventListener('click', function (e) { if (e.target.id === 'c-info-up' || e.target.closest('#c-info-up')) { doUpgrade(); return; } if (e.target.id === 'c-info-store') { host.sound('tap'); openStore(); return; } if (e.target.id === 'c-info-x') { S.selected = null; paintInfo(); requestRender(); } });
 
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);

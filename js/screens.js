@@ -214,12 +214,13 @@ var Screens = (function () {
     var home = document.getElementById('screen-home'); if (!home) return;
     var parts = '';
     function chip(k, n) { return '<span class="rwd" title="' + k + '">' + Art.res(k) + '<b>' + n + '</b></span>'; }
-    var msg = '';
+    var msg = '', slept = '', made = r.reward.produced || {};
+    if (Object.keys(made).some(function (k) { return made[k] > 0; })) slept = '<p>While you slept, your buildings made:</p><div class="rewrow">' + Object.keys(made).filter(function (k) { return made[k] > 0; }).map(function (k) { return chip(k === 'mimosa' || k === 'psilocybe' ? k : k, made[k]); }).join('') + '</div>';
     if (r.notice && r.notice.type === 'freeze') msg = '<p class="ci-note good">You missed ' + (r.notice.n === 1 ? 'a day' : r.notice.n + ' days') + ', so ' + (r.notice.n === 1 ? 'a streak freeze was' : r.notice.n + ' streak freezes were') + ' used. Your streak is safe.</p>';
     else if (r.notice && r.notice.type === 'reset') msg = '<p class="ci-note">Your ' + r.notice.n + '-day streak took a rest while you were away. A new one starts with today\u2019s prompt. Welcome back.</p>';
     var card = el('<div class="ci-back" role="dialog" aria-modal="true" aria-labelledby="ci-h"><div class="pxp ci-card"><span class="tag">DAILY CHECK-IN</span><h2 id="ci-h" data-focus tabindex="-1">Good morning, ' + (Save.get().playerName || 'traveller') + '</h2>' +
       '<p>Day ' + Clock.dayNumber(Save.get().createdAt) + ' of your city. Here is today\u2019s reward.</p>' +
-      '<div class="rewrow">' + chip('food', r.reward.food) + chip(r.reward.res, r.reward.amount) + '</div>' + msg +
+      '<div class="rewrow">' + chip('food', r.reward.food) + chip(r.reward.res, r.reward.amount) + '</div>' + slept + msg +
       '<button class="pbtn" id="ci-ok">Collect</button></div></div>');
     home.appendChild(card);
     Sound.play('collect');

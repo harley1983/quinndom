@@ -154,4 +154,39 @@ test("a city that comes back from JSON stays the same", () => {
   assert.deepStrictEqual(City.clean(JSON.parse(JSON.stringify(s))), s);
 });
 
+console.log("production and upgrades");
+test("production adds up what every production building makes, times its level", () => {
+  const prod = B.LIST.filter(b => b.produce);
+  assert.deepStrictEqual(City.production(City.emptyState()), {});
+  const pb = prod[0]; assert.ok(pb, "a production building exists");
+  let s = City.emptyState(); const res = rich();
+  const placed = City.place(s, res, pb.id, 12, 3); assert.ok(placed.ok, "placed");
+  s = placed.state;
+  const one = City.production(s);
+  Object.keys(pb.produce).forEach(k => assert.strictEqual(one[k], pb.produce[k]));
+  s.buildings[s.buildings.length - 1].level = 2;
+  Object.keys(pb.produce).forEach(k => assert.strictEqual(City.production(s)[k], pb.produce[k] * 2));
+});
+test("upgrading costs Metal, raises the level and the Credit, and stops at the top", () => {
+  const pb = B.LIST.filter(b => b.produce)[0];
+  let s = City.emptyState(); let res = rich();
+  s = City.place(s, res, pb.id, 12, 3).state;
+  const i = s.buildings.length - 1, cost = B.upgradeCost(pb.id, 1).metal;
+  res = { wood: 0, stone: 0, metal: cost - 1, food: 0 };
+  const no = City.upgrade(s, res, i); assert.strictEqual(no.ok, false); assert.strictEqual(no.reason, "cost");
+  res.metal = cost + 5;
+  const before = City.creditScore(s);
+  const up = City.upgrade(s, res, i); assert.ok(up.ok); assert.strictEqual(up.level, 2); assert.strictEqual(up.resources.metal, 5);
+  if (before !== null) assert.ok(City.creditScore(up.state) > before);
+  const c2 = B.upgradeCost(pb.id, 2).metal; assert.ok(c2 > cost);
+  const up3 = City.upgrade(up.state, { metal: 9999 }, i); assert.ok(up3.ok); assert.strictEqual(up3.level, 3);
+  const max = City.upgrade(up3.state, { metal: 9999 }, i); assert.strictEqual(max.ok, false); assert.strictEqual(max.reason, "max");
+});
+test("civic buildings and roads cannot be upgraded", () => {
+  const s = City.emptyState(); const i = s.buildings.findIndex(b => B.get(b.type).civic);
+  assert.strictEqual(City.upgrade(s, { metal: 9999 }, i).ok, false);
+  assert.strictEqual(B.canUpgrade("road"), false);
+  assert.strictEqual(City.upgrade(s, { metal: 9999 }, 999).reason, "unknown");
+});
+
 console.log("\n" + passed + " passed" + (process.exitCode ? ", some FAILED" : ""));

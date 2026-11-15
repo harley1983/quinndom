@@ -129,5 +129,5 @@
 .st-left svg{width:16px;height:16px}
 .st-row .pbtn{min-height:40px;display:inline-flex;align-items:center;gap:4px}
 .st-row .pbtn svg{width:16px;height:16px}
-.st-row .pbtn[disabled]{opacity:.5;cursor:not-allowed}
+.pbtn[disabled],.st-row .pbtn[disabled]{opacity:.5;cursor:not-allowed}
 @media (max-width:640px){.st-row{grid-template-columns:auto 1fr;}.st-row .st-nm{grid-column:2}.st-row .st-left,.st-row .pbtn{grid-column:1 / -1;justify-self:start}}

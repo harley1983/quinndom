@@ -74,6 +74,26 @@ var City = (function () {
     return { ok: true, state: { size: state.size, buildings: state.buildings.concat([b]) }, resources: res, building: b };
   }
 
+  /* what the city makes in one day: every production building's output x its level */
+  function production(state) {
+    var out = {};
+    state.buildings.forEach(function (b) { var p = B.produceAt(b.type, b.level); Object.keys(p).forEach(function (k) { out[k] = (out[k] || 0) + p[k]; }); });
+    return out;
+  }
+
+  /* raise building number `index` by one level, paying Metal. The inputs are not changed. */
+  function upgrade(state, resources, index) {
+    var b = state.buildings[index];
+    if (!b) return { ok: false, reason: 'unknown' };
+    if (!B.canUpgrade(b.type)) return { ok: false, reason: 'fixed' };
+    var cost = B.upgradeCost(b.type, b.level);
+    if (!cost) return { ok: false, reason: 'max' };
+    if ((resources.metal || 0) < cost.metal) return { ok: false, reason: 'cost', missing: { metal: cost.metal - (resources.metal || 0) } };
+    var res = Object.assign({}, resources); res.metal -= cost.metal;
+    var list = state.buildings.map(function (x, i) { return i === index ? { type: x.type, x: x.x, y: x.y, level: x.level + 1 } : x; });
+    return { ok: true, state: { size: state.size, buildings: list }, resources: res, level: b.level + 1 };
+  }
+
   /* Credit score = the sum of all building values (cost x level) */
   function creditScore(state) {
     var n = 0;
@@ -102,7 +122,7 @@ var City = (function () {
       if (!b || typeof b.type !== 'string' || !B.get(b.type)) return;
       var x = Number(b.x), y = Number(b.y), lv = Math.floor(Number(b.level));
       if (!isFinite(x) || !isFinite(y) || Math.floor(x) !== x || Math.floor(y) !== y) return;
-      var nb = { type: b.type, x: x, y: y, level: isFinite(lv) && lv >= 1 ? Math.min(lv, 10) : 1 };
+      var nb = { type: b.type, x: x, y: y, level: isFinite(lv) && lv >= 1 ? Math.min(lv, B.MAX_LEVEL) : 1 };
       var cells = cellsOf(nb), h0 = T.h(nb.x, nb.y);
       for (var i = 0; i < cells.length; i++) { if (!inside(cells[i][0], cells[i][1]) || T.h(cells[i][0], cells[i][1]) !== h0 || taken[cells[i][0] + ',' + cells[i][1]]) return; }
       cells.forEach(function (c) { taken[c[0] + ',' + c[1]] = true; });
@@ -121,6 +141,6 @@ var City = (function () {
   }
 
   return { SIZE: SIZE, inside: inside, tileCount: tileCount, emptyState: emptyState, cellsOf: cellsOf, occupancy: occupancy, at: at,
-    STARTER: STARTER, canPlace: canPlace, missing: missing, place: place, creditScore: creditScore, stats: stats, roadMask: roadMask, clean: clean };
+    production: production, upgrade: upgrade, STARTER: STARTER, canPlace: canPlace, missing: missing, place: place, creditScore: creditScore, stats: stats, roadMask: roadMask, clean: clean };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = City;

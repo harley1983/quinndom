@@ -32,6 +32,10 @@ var Daily = (function () {
     if (d.checkinDay === day) return null;
     var kinds = ['wood', 'stone', 'metal'], r = { food: CHECKIN_FOOD, res: kinds[Math.floor(Math.random() * 3)], amount: CHECKIN_RES };
     var res = Object.assign({}, Save.get().resources); res.food += r.food; res[r.res] += r.amount;
+    /* overnight production from the city's production buildings (once per day, whatever the gap) */
+    var made = (typeof City !== 'undefined') ? City.production(Save.get().city) : {};
+    Object.keys(made).forEach(function (k) { res[k] = (res[k] || 0) + made[k]; });
+    r.produced = made;
     d.checkinDay = day; d.checkin = r;
     var notice = d.notice; d.notice = null;
     put(d, res);

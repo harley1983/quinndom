@@ -44,6 +44,21 @@ var Buildings = (function () {
   /* a building's value = its total construction cost x its level (GDD "City and Credit score") */
   function value(id, level) { return totalCost(id) * Math.max(1, Math.floor(level || 1)); }
 
-  return { GROUPS: GROUPS, LIST: LIST, CIVIC: CIVIC, COST_KEYS: COST_KEYS, get: get, totalCost: totalCost, value: value };
+  /* Upgrades (v1.1): production, housing, military and attraction buildings can be raised to level 3 with Metal.
+     The Metal cost of the next level = the building's total cost x that level (tunable here). Output per day = base x level. */
+  var MAX_LEVEL = 3, UPGRADE_FACTOR = 1;
+  function canUpgrade(id) { var b = get(id); return !!b && !b.civic && !b.road; }
+  function upgradeCost(id, level) {
+    level = Math.max(1, Math.floor(level || 1));
+    if (!canUpgrade(id) || level >= MAX_LEVEL) return null;
+    return { metal: Math.max(1, Math.round(totalCost(id) * UPGRADE_FACTOR * (level + 1))) };
+  }
+  function produceAt(id, level) {
+    var b = get(id), out = {}; if (!b || !b.produce) return out;
+    Object.keys(b.produce).forEach(function (k) { out[k] = b.produce[k] * Math.max(1, Math.floor(level || 1)); });
+    return out;
+  }
+
+  return { MAX_LEVEL: MAX_LEVEL, canUpgrade: canUpgrade, upgradeCost: upgradeCost, produceAt: produceAt, GROUPS: GROUPS, LIST: LIST, CIVIC: CIVIC, COST_KEYS: COST_KEYS, get: get, totalCost: totalCost, value: value };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = Buildings;
