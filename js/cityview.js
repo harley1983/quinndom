@@ -37,6 +37,7 @@ var CityView = (function () {
   function paintBar() {
     var s = Save.get(), html = '';
     RES.forEach(function (k) { html += '<span class="c-chip" title="' + NAMES[k] + '">' + Art.res(k) + '<b>' + fmt(s.resources[k] || 0) + '</b></span>'; });
+    html += '<span class="c-chip" title="Coins (earned on the Journey)">' + Art.res('coin') + '<b>' + fmt(s.resources.coins || 0) + '</b></span>';
     q('#c-res').innerHTML = html;
     q('#c-credit').innerHTML = Art.res('credit') + '<b>' + fmt(City.creditScore(s.city)) + '</b>';
     var v = Daily.view();
@@ -91,7 +92,46 @@ var CityView = (function () {
     var t = Buildings.get(b.type);
     box.hidden = false;
     box.innerHTML = '<span class="tag">' + groupName(t.group) + ' · ' + sizeText(t) + '</span><b>' + t.name + '</b><p>' + t.effect + '</p>' +
-      (t.civic ? '<small>Part of your starting town. It stays here.</small>' : '<div class="irow"><span>Level ' + b.level + '</span><span>' + Art.res('credit') + Buildings.value(b.type, b.level) + ' Credit</span></div><small>Upgrades with Metal come in a later step.</small>') + '<button class="pbtn light" id="c-info-x">Close</button>';
+      (t.civic ? '<small>Part of your starting town. It stays here.</small>' + (b.type === 'market' ? '<button class="pbtn" id="c-info-store">Open the store</button>' : '') : '<div class="irow"><span>Level ' + b.level + '</span><span>' + Art.res('credit') + Buildings.value(b.type, b.level) + ' Credit</span></div><small>Upgrades with Metal come in a later step.</small>') + '<button class="pbtn light" id="c-info-x">Close</button>';
+  }
+  /* ---------------- the store (tap the Market) ---------------- */
+  function openStore(msg) {
+    var old = node.querySelector('.c-modal.store'); if (old) old.remove();
+    var s = Save.get(), res = s.resources, day = Clock.dayKey(), left = Store.left(s.store, day), stock = Store.stock(day);
+    function chip(k, n) { return '<span class="cost">' + Art.res(k) + n + '</span>'; }
+    var html = '<div class="st-bal" aria-label="You have">' + ['coins', 'mimosa', 'psilocybe', 'wood', 'stone', 'metal'].map(function (k) { return '<span class="c-chip" title="' + k + '">' + Art.res(k === 'coins' ? 'coin' : k) + '<b>' + fmt(res[k] || 0) + '</b></span>'; }).join('') + '</div>';
+    if (msg) html += '<p class="st-msg ' + msg.kind + '" role="status">' + msg.text + '</p>';
+    html += '<h3>Today\u2019s stock</h3><p class="st-note">Coins come from the Journey road. The stock is the same for everyone and changes at midnight, Vietnam time.</p>';
+    [['mimosa', 'Mimosa', 'One-day hero boost: an extra hint in every puzzle.'], ['psilocybe', 'Psilocybe', 'Needed to pass hero level milestones.']].forEach(function (it) {
+      var k = it[0], n = left[k], can = n > 0 && (res.coins || 0) >= Store.PRICES[k];
+      html += '<div class="st-row"><span class="st-ic">' + Art.res(k) + '</span><span class="st-nm"><b>' + it[1] + '</b><small>' + it[2] + '</small></span><span class="st-left">' + n + ' of ' + stock[k] + ' left</span>' +
+        '<button class="pbtn" data-buy="' + k + '"' + (can ? '' : ' disabled') + '>' + Art.res('coin') + Store.PRICES[k] + '</button></div>';
+    });
+    html += '<h3>Trade</h3><p class="st-note">Fixed prices. Nothing here sells for coins.</p>';
+    Store.TRADES.forEach(function (t) {
+      var can = (res[t.give] || 0) >= t.rate;
+      html += '<div class="st-row"><span class="st-nm"><b>' + t.name + '</b><small>' + t.rate + ' ' + NAMES[t.give] + ' = 1 ' + NAMES[t.get] + '</small></span><span class="st-left">' + Art.res(t.give) + t.rate + ' \u2192 ' + Art.res(t.get) + '1</span>' +
+        '<button class="pbtn light" data-trade="' + t.id + '" data-n="1"' + (can ? '' : ' disabled') + '>Trade 1</button>' +
+        (t.rate === 1 ? '<button class="pbtn light" data-trade="' + t.id + '" data-n="10"' + ((res[t.give] || 0) >= 10 ? '' : ' disabled') + '>Trade 10</button>' : '') + '</div>';
+    });
+    var m = host.el('<div class="c-modal store" role="dialog" aria-modal="true" aria-labelledby="c-s-h"><div class="pxp c-mcard"><div class="mh"><h2 id="c-s-h" tabindex="-1" data-mfocus>Market store</h2><button class="pbtn light" id="c-s-x">Close</button></div><div class="mb">' + html + '</div></div></div>');
+    node.appendChild(m);
+    function close() { m.remove(); cv.focus({ preventScroll: true }); }
+    m.addEventListener('click', function (e) {
+      if (e.target === m || e.target.id === 's-x' || e.target.id === 'c-s-x') { close(); return; }
+      var b = e.target.closest('[data-buy]'), t = e.target.closest('[data-trade]'), r, cur = Save.get();
+      if (b) {
+        r = Store.buy(cur.resources, cur.store, b.getAttribute('data-buy'), Clock.dayKey());
+        if (r.ok) { Save.update({ resources: r.resources, store: r.store }); host.sound('collect'); paintBar(); openStore({ kind: 'ok', text: 'Bought 1 ' + b.getAttribute('data-buy') + '.' }); }
+        else openStore({ kind: 'bad', text: r.error });
+      } else if (t) {
+        r = Store.trade(cur.resources, t.getAttribute('data-trade'), t.getAttribute('data-n'));
+        if (r.ok) { Save.update({ resources: r.resources }); host.sound('collect'); paintBar(); paintTiles(); openStore({ kind: 'ok', text: 'Traded.' }); }
+        else openStore({ kind: 'bad', text: r.error });
+      }
+    });
+    m.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    var f = m.querySelector('[data-mfocus]'); if (f) f.focus();
   }
   function groupName(id) { for (var i = 0; i < Buildings.GROUPS.length; i++) if (Buildings.GROUPS[i].id === id) return Buildings.GROUPS[i].name; return id; }
   /* a plain list for screen readers (the canvas itself cannot be read) */
@@ -483,7 +523,7 @@ var CityView = (function () {
       if (e.target.id === 'c-place' && S.pending) { var p = S.pending; tryPlace(S.building, p.x, p.y); }
       else if (e.target.id === 'c-cancel') { S.pending = null; defaultStatus(); requestRender(); }
     });
-    q('#c-info').addEventListener('click', function (e) { if (e.target.id === 'c-info-x') { S.selected = null; paintInfo(); requestRender(); } });
+    q('#c-info').addEventListener('click', function (e) { if (e.target.id === 'c-info-store') { host.sound('tap'); openStore(); return; } if (e.target.id === 'c-info-x') { S.selected = null; paintInfo(); requestRender(); } });
 
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);

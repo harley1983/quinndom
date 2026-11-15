@@ -14,7 +14,8 @@ var Save = (function () {
       cityName: '',
       createdAt: null,
       settings: { sfx: false, ambience: false, volume: 0.7 }, // sound is off by default
-      resources: { wood: 0, stone: 0, metal: 0, food: 0, coins: 0 },
+      resources: { wood: 0, stone: 0, metal: 0, food: 0, coins: 0, mimosa: 0, psilocybe: 0 },
+      store: { day: null, bought: { mimosa: 0, psilocybe: 0 } },   // what was bought from today's store stock (js/store.js)
       daily: { checkinDay: null, checkin: null, streak: 0, best: 0, freezes: 0, lastCounted: null, syncedDay: null, notice: null, milestones: [] },
       backup: { lastExport: null, snoozedOn: null },
       passport: { stamps: [], days: {} },  // stamps: [{code, date, promptId, gold}]; days: {dayKey: {tries: [codes], answer, result}}
@@ -35,7 +36,9 @@ var Save = (function () {
     var v = Number(s.volume);
     d.settings.volume = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
     var r = raw.resources || {};
-    ['wood', 'stone', 'metal', 'food', 'coins'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    ['wood', 'stone', 'metal', 'food', 'coins', 'mimosa', 'psilocybe'].forEach(function (k) { var n = Number(r[k]); d.resources[k] = isFinite(n) && n > 0 ? Math.floor(n) : 0; });
+    var so = raw.store || {};
+    if (/^\d{4}-\d{2}-\d{2}$/.test(so.day) && so.bought) { d.store.day = so.day; ['mimosa', 'psilocybe'].forEach(function (k) { var n = Math.floor(Number(so.bought[k])); d.store.bought[k] = isFinite(n) && n > 0 ? Math.min(n, 99) : 0; }); }
     var dl = raw.daily || {}, key = /^\d{4}-\d{2}-\d{2}$/;
     function whole(n) { n = Math.floor(Number(n)); return isFinite(n) && n > 0 ? n : 0; }
     d.daily.checkinDay = key.test(dl.checkinDay) ? dl.checkinDay : null;
@@ -69,7 +72,7 @@ var Save = (function () {
   function sandboxSeed() {
     var d = defaults();
     d.playerName = 'Tester'; d.cityName = 'Sunleaf Quarter'; d.createdAt = new Date().toISOString();
-    d.resources = { wood: 300, stone: 300, metal: 200, food: 100, coins: 0 };
+    d.resources = { wood: 300, stone: 300, metal: 200, food: 100, coins: 100, mimosa: 0, psilocybe: 0 };
     return d;
   }
 
@@ -98,6 +101,7 @@ var Save = (function () {
       createdAt: patch.createdAt !== undefined ? patch.createdAt : cur.createdAt,
       settings: patch.settings ? Object.assign({}, cur.settings, patch.settings) : cur.settings,
       resources: patch.resources || cur.resources,
+      store: patch.store || cur.store,
       daily: patch.daily || cur.daily,
       backup: patch.backup ? Object.assign({}, cur.backup, patch.backup) : cur.backup,
       passport: patch.passport || cur.passport,

@@ -115,3 +115,19 @@
   .c-row{grid-template-columns:1fr auto}
   .c-row .re{display:none}
 }
+
+/* store panel (tap the Market) */
+.st-bal{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.st-msg{margin:0;padding:8px 10px;font-weight:700;font-size:14px;background:#E3F4D6;border-left:4px solid var(--canopy)}
+.st-msg.bad{background:#FBE3DC;border-left-color:#C8693D}
+.st-note{margin:0 0 4px;font-size:13px;color:var(--body-text)}
+.st-row{display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:10px;padding:8px 10px;background:#F3EBD0}
+.st-row .st-nm{display:flex;flex-direction:column;gap:2px;grid-column:2}
+.st-row .st-nm small{font-size:12px;color:var(--body-text)}
+.st-row .st-ic{grid-column:1}.st-row .st-ic svg{width:28px;height:28px}
+.st-left{font-family:var(--font-pixel);font-size:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.st-left svg{width:16px;height:16px}
+.st-row .pbtn{min-height:40px;display:inline-flex;align-items:center;gap:4px}
+.st-row .pbtn svg{width:16px;height:16px}
+.st-row .pbtn[disabled]{opacity:.5;cursor:not-allowed}
+@media (max-width:640px){.st-row{grid-template-columns:auto 1fr;}.st-row .st-nm{grid-column:2}.st-row .st-left,.st-row .pbtn{grid-column:1 / -1;justify-self:start}}
